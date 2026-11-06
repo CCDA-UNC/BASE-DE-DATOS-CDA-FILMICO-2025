@@ -137,7 +137,7 @@
             <div id="filter-section" style="display: none;">
                 <h2>Búsqueda y Filtros</h2> 
                 
-                <!-- Búsqueda Global Modificada -->
+                <!-- Búsqueda Global Modificada: Se añadió el botón y se eliminó el width: 100% del input directo -->
                 <div style="display: flex; gap: 10px; width: 100%;">
                     <input type="text" id="globalSearch" placeholder="Escriba su búsqueda global y presione Enter o Buscar..." style="flex: 1;">
                     <button id="globalSearchBtn" style="background-color: #17a2b8; color: white;">Buscar</button>
@@ -469,26 +469,30 @@
             resultsCount.textContent = `Mostrando ${filteredData.length} de ${originalData.length} registros.`;
         }
 
-        // --- SISTEMA DE BÚSQUEDA GLOBAL CON ESPERA ---
+        // --- SISTEMA DE BÚSQUEDA GLOBAL CON ESPERA (Agregado en lugar del evento "input") ---
         function iniciarBusquedaGlobal() {
+            // Se actualizan los textos de carga en la UI antes de trabar el hilo
             resultsCount.style.color = '#0056b3';
             resultsCount.textContent = "Buscando información, esto puede demorar unos segundos. Por favor espere...";
             tableBody.innerHTML = '<tr><td colspan="10" style="text-align:center; font-weight:bold; color:#0056b3; padding: 20px;">Buscando resultados...</td></tr>';
             
+            // Pausa minúscula para que el navegador procese los cambios de texto en pantalla
             setTimeout(() => {
                 applyAllFilters();
             }, 50);
         }
 
+        // Escuchar el clic en el botón de búsqueda
         document.getElementById('globalSearchBtn').addEventListener('click', iniciarBusquedaGlobal);
 
+        // Escuchar la tecla Enter en el input de búsqueda
         document.getElementById('globalSearch').addEventListener('keypress', (event) => {
             if (event.key === 'Enter') {
                 event.preventDefault(); 
                 iniciarBusquedaGlobal();
             }
         });
-        // ---------------------------------------------
+        // -------------------------------------------------------------------------------------
 
         document.getElementById('addFilterBtn').addEventListener('click', () => {
             const column = document.getElementById('columnSelect').value; 
@@ -632,4 +636,64 @@
         document.getElementById('clearSelectionBtn').addEventListener('click', () => {
             if (confirm("¿Vaciar selección?")) {
                 selectedRowIDs.clear(); updateSelectionCount(); renderTable(currentVisibleData); 
-                document.querySelector('#selectionTable tbody').
+                document.querySelector('#selectionTable tbody').innerHTML = '';
+            }
+        });
+
+        function toggleViews(showSelection) {
+            if (showSelection) { 
+                document.getElementById('main-view').style.display = 'none'; 
+                document.getElementById('selection-view').style.display = 'block'; 
+                renderSelectionTable(); 
+            } else { 
+                document.getElementById('main-view').style.display = 'block'; 
+                document.getElementById('selection-view').style.display = 'none'; 
+                renderTable(currentVisibleData); 
+            }
+        }
+
+        function renderSelectionTable() {
+            const sBody = document.querySelector('#selectionTable tbody');
+            const sHead = document.querySelector('#selectionTable thead');
+            sHead.innerHTML = ''; sBody.innerHTML = '';
+            const selectedData = originalData.filter(row => selectedRowIDs.has(row[idColumn]));
+            document.getElementById('selectionCount').textContent = `Mostrando ${selectedData.length} items seleccionados.`;
+            
+            const headerRow = document.createElement('tr'); 
+            headerRow.innerHTML = '<th>Quitar</th><th>Detalle</th><th>Video</th>'; 
+            headersToShow.forEach(h => { const th = document.createElement('th'); th.textContent = h; headerRow.appendChild(th); });
+            sHead.appendChild(headerRow); 
+            
+            if (selectedData.length === 0) return;
+            const fragment = document.createDocumentFragment();
+            selectedData.forEach(row => {
+                const tr = document.createElement('tr'); 
+                const rowID = row[idColumn];
+                tr.innerHTML = `<td><button class="remove-item-btn" data-row-id="${rowID}" style="background:#dc3545; color:white; padding:6px; border-radius:4px; border:none; cursor:pointer;">&times;</button></td>
+                                <td><button type="button" class="detail-btn" data-row-id="${rowID}">🔍</button></td>
+                                <td>${row[videoLinkColumn] ? `<a href="${row[videoLinkColumn]}" target="_blank" class="video-direct-link">▶️</a>` : ''}</td>`;
+                headersToShow.forEach(h => { tr.innerHTML += `<td><div class="cell-content">${row[h] || ''}</div></td>`; });
+                fragment.appendChild(tr);
+            }); 
+            sBody.appendChild(fragment);
+        }
+
+        document.querySelector('#selectionTable tbody').addEventListener('click', (e) => {
+            const target = e.target;
+            const btnDetail = target.closest('.detail-btn');
+            
+            if (target.classList.contains('remove-item-btn')) { 
+                selectedRowIDs.delete(target.dataset.rowId); updateSelectionCount(); renderSelectionTable(); 
+            } else if (btnDetail) { 
+                showDetails(btnDetail.dataset.rowId); 
+            }
+        });
+
+        function downloadCSV() {
+            let data = selectedRowIDs.size > 0 ? originalData.filter(row => selectedRowIDs.has(row[idColumn])) : currentVisibleData;
+            if(data.length === 0) return;
+            
+            const exportData = data.map(row => { const newRow = { ...row }; delete newRow[idColumn]; return newRow; });
+            const csv = Papa.unparse(exportData, { header: true });
+            const blob = new Blob([csv], { type: 'text/csv;charset=utf-8-sig;' }); 
+            const link = document.createElement('a'); link.href = URL.createObjectURL(blob); link.download = "report
