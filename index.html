@@ -460,4 +460,213 @@
 
         function renderActiveFilters() {
             const activeFiltersDiv = document.getElementById('activeFilters');
-            activeFiltersDiv.innerHTML
+            activeFiltersDiv.innerHTML = ''; 
+            let hasFilters = false; 
+            for (const column in activeColumnFilters) {
+                activeColumnFilters[column].forEach((value, index) => {
+                    hasFilters = true;
+                    const tag = document.createElement('div'); tag.className = 'filter-tag';
+                    tag.innerHTML = `<span>${column}:</span> "${value}" <span data-column="${column}" data-index="${index}">&times;</span>`; 
+                    tag.querySelector('span[data-column]').addEventListener('click', (e) => {
+                        const colToRemove = e.target.dataset.column;
+                        const indexToRemove = parseInt(e.target.dataset.index, 10); 
+                        activeColumnFilters[colToRemove].splice(indexToRemove, 1);
+                        if (activeColumnFilters[colToRemove].length === 0) delete activeColumnFilters[colToRemove];
+                        renderActiveFilters(); applyAllFilters();     
+                    });
+                    activeFiltersDiv.appendChild(tag);
+                });
+            }
+            if (!hasFilters) activeFiltersDiv.innerHTML = '<p style="margin:0; color:#666; font-size:14px;">Ninguno.</p>';
+        }
+
+        document.getElementById('resetBtn').addEventListener('click', () => {
+            document.getElementById('globalSearch').value = ''; 
+            activeColumnFilters = {}; 
+            renderActiveFilters(); 
+            currentVisibleData = [...originalData]; 
+            renderTable(originalData); 
+            updateColumnDatalist();
+            resultsCount.textContent = `Mostrando ${originalData.length} de ${originalData.length} registros.`;
+        });
+
+        document.getElementById('globalSearch').addEventListener('input', applyAllFilters);
+        document.getElementById('columnSelect').addEventListener('change', updateColumnDatalist);
+
+        tableBody.addEventListener('click', (event) => {
+            const target = event.target; 
+            const btnDetail = target.closest('.detail-btn');
+            
+            if (target.classList.contains('row-checkbox')) {
+                if (target.checked) selectedRowIDs.add(target.dataset.rowId); 
+                else selectedRowIDs.delete(target.dataset.rowId);
+                updateSelectAllCheckboxState(); updateSelectionCount();
+            } else if (btnDetail) { 
+                showDetails(btnDetail.dataset.rowId); 
+            }
+        });
+
+        tableHead.addEventListener('click', (event) => {
+            if (event.target.id === 'selectAllCheckbox') {
+                const isChecked = event.target.checked; 
+                const rowCheckboxes = tableBody.querySelectorAll('.row-checkbox');
+                currentVisibleData.forEach(row => { 
+                    if (isChecked) selectedRowIDs.add(row[idColumn]); else selectedRowIDs.delete(row[idColumn]); 
+                });
+                rowCheckboxes.forEach(checkbox => checkbox.checked = isChecked); 
+                updateSelectionCount();
+            }
+        });
+
+        function updateSelectAllCheckboxState() {
+            const selectAllCheckbox = document.getElementById('selectAllCheckbox'); 
+            if (!selectAllCheckbox) return;
+            const totalVisibleRows = currentVisibleData.length; 
+            if (totalVisibleRows === 0) { selectAllCheckbox.checked = false; selectAllCheckbox.indeterminate = false; return; }
+            let visibleSelectedCount = 0; 
+            currentVisibleData.forEach(row => { if (selectedRowIDs.has(row[idColumn])) visibleSelectedCount++; });
+            if (visibleSelectedCount === totalVisibleRows && totalVisibleRows > 0) { selectAllCheckbox.checked = true; selectAllCheckbox.indeterminate = false; } 
+            else if (visibleSelectedCount > 0) { selectAllCheckbox.checked = false; selectAllCheckbox.indeterminate = true; } 
+            else { selectAllCheckbox.checked = false; selectAllCheckbox.indeterminate = false; }
+        }
+
+        function updateSelectionCount() { 
+            const btn = document.getElementById('viewSelectionBtn');
+            btn.textContent = `Mi Selección (${selectedRowIDs.size})`; 
+            if(selectedRowIDs.size > 0) btn.style.display = 'inline-block'; else btn.style.display = 'none';
+        }
+
+        function showDetails(rowID) {
+            const record = originalData.find(row => row[idColumn] === rowID); 
+            if (!record) return; 
+            
+            const detailContent = document.getElementById('detail-content');
+            detailContent.innerHTML = ''; 
+            
+            headers.forEach(header => {
+                if (header && header !== idColumn) { 
+                     let value = record[header] ? String(record[header]).trim() : ''; 
+                     if (value.toUpperCase() === "S/D" || value === "") return; 
+                     
+                     const detailItem = document.createElement('div');
+                     if (header === videoLinkColumn) {
+                         let videoEmbedHtml = '';
+                         let youtubeMatch = value.match(/^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|\&v=)([^#\&\?]*).*/);
+                         if (youtubeMatch && youtubeMatch[2].length === 11) { 
+                             videoEmbedHtml = `<div class="embedded-video-container"><iframe src="https://www.youtube.com/embed/${youtubeMatch[2]}" frameborder="0" allowfullscreen></iframe></div>`; 
+                         } else if (value.startsWith('http') || value.startsWith('/')) { 
+                             detailItem.innerHTML = `<strong>${header}:</strong> <a href="${value}" target="_blank" style="color:#28a745;">Ver Recurso ↗</a>`; 
+                         } else { detailItem.innerHTML = `<strong>${header}:</strong> ${value}`; }
+                         if (videoEmbedHtml) detailItem.innerHTML = `<strong>${header}:</strong>${videoEmbedHtml}`;
+                     } else { 
+                         detailItem.innerHTML = `<strong>${header}:</strong> <span>${value}</span>`; 
+                     }
+                     detailContent.appendChild(detailItem);
+                }
+            }); 
+            
+            if (detailContent.innerHTML === '') detailContent.innerHTML = '<p>No hay información adicional disponible.</p>';
+
+            document.getElementById('detail-modal-overlay').style.display = 'flex'; 
+            document.body.style.overflow = 'hidden'; 
+        }
+
+        function closeModal() {
+            document.getElementById('detail-modal-overlay').style.display = 'none'; 
+            document.body.style.overflow = 'auto'; 
+        }
+
+        document.getElementById('detail-modal-close').addEventListener('click', closeModal);
+        document.getElementById('detail-modal-overlay').addEventListener('click', (e) => {
+            if(e.target.id === 'detail-modal-overlay') closeModal();
+        });
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape') closeModal();
+        });
+        
+        document.getElementById('viewSelectionBtn').addEventListener('click', () => toggleViews(true));
+        document.getElementById('backToSearchBtn').addEventListener('click', () => toggleViews(false));
+        document.getElementById('clearSelectionBtn').addEventListener('click', () => {
+            if (confirm("¿Vaciar selección?")) {
+                selectedRowIDs.clear(); updateSelectionCount(); renderTable(currentVisibleData); 
+                document.querySelector('#selectionTable tbody').innerHTML = '';
+            }
+        });
+
+        function toggleViews(showSelection) {
+            if (showSelection) { 
+                document.getElementById('main-view').style.display = 'none'; 
+                document.getElementById('selection-view').style.display = 'block'; 
+                renderSelectionTable(); 
+            } else { 
+                document.getElementById('main-view').style.display = 'block'; 
+                document.getElementById('selection-view').style.display = 'none'; 
+                renderTable(currentVisibleData); 
+            }
+        }
+
+        function renderSelectionTable() {
+            const sBody = document.querySelector('#selectionTable tbody');
+            const sHead = document.querySelector('#selectionTable thead');
+            sHead.innerHTML = ''; sBody.innerHTML = '';
+            const selectedData = originalData.filter(row => selectedRowIDs.has(row[idColumn]));
+            document.getElementById('selectionCount').textContent = `Mostrando ${selectedData.length} items seleccionados.`;
+            
+            const headerRow = document.createElement('tr'); 
+            headerRow.innerHTML = '<th>Quitar</th><th>Detalle</th><th>Video</th>'; 
+            headersToShow.forEach(h => { const th = document.createElement('th'); th.textContent = h; headerRow.appendChild(th); });
+            sHead.appendChild(headerRow); 
+            
+            if (selectedData.length === 0) return;
+            const fragment = document.createDocumentFragment();
+            selectedData.forEach(row => {
+                const tr = document.createElement('tr'); 
+                const rowID = row[idColumn];
+                tr.innerHTML = `<td><button class="remove-item-btn" data-row-id="${rowID}" style="background:#dc3545; color:white; padding:6px; border-radius:4px; border:none; cursor:pointer;">&times;</button></td>
+                                <td><button type="button" class="detail-btn" data-row-id="${rowID}">🔍</button></td>
+                                <td>${row[videoLinkColumn] ? `<a href="${row[videoLinkColumn]}" target="_blank" class="video-direct-link">▶️</a>` : ''}</td>`;
+                headersToShow.forEach(h => { tr.innerHTML += `<td><div class="cell-content">${row[h] || ''}</div></td>`; });
+                fragment.appendChild(tr);
+            }); 
+            sBody.appendChild(fragment);
+        }
+
+        document.querySelector('#selectionTable tbody').addEventListener('click', (e) => {
+            const target = e.target;
+            const btnDetail = target.closest('.detail-btn');
+            
+            if (target.classList.contains('remove-item-btn')) { 
+                selectedRowIDs.delete(target.dataset.rowId); updateSelectionCount(); renderSelectionTable(); 
+            } else if (btnDetail) { 
+                showDetails(btnDetail.dataset.rowId); 
+            }
+        });
+
+        function downloadCSV() {
+            let data = selectedRowIDs.size > 0 ? originalData.filter(row => selectedRowIDs.has(row[idColumn])) : currentVisibleData;
+            if(data.length === 0) return;
+            
+            const exportData = data.map(row => { const newRow = { ...row }; delete newRow[idColumn]; return newRow; });
+            const csv = Papa.unparse(exportData, { header: true });
+            const blob = new Blob([csv], { type: 'text/csv;charset=utf-8-sig;' }); 
+            const link = document.createElement('a'); link.href = URL.createObjectURL(blob); link.download = "reporte.csv";
+            link.click();
+        }
+        document.getElementById('downloadBtn').addEventListener('click', downloadCSV);
+        document.getElementById('downloadSelectionBtn').addEventListener('click', downloadCSV);
+
+        function downloadExcel() {
+            let data = selectedRowIDs.size > 0 ? originalData.filter(row => selectedRowIDs.has(row[idColumn])) : currentVisibleData;
+            if(data.length === 0) return;
+            
+            const exportData = data.map(row => { const newRow = { ...row }; delete newRow[idColumn]; return newRow; });
+            const ws = XLSX.utils.json_to_sheet(exportData);
+            const wb = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(wb, ws, "Datos");
+            XLSX.writeFile(wb, "reporte.xlsx");
+        }
+        document.getElementById('downloadExcelBtn').addEventListener('click', downloadExcel);
+        document.getElementById('downloadSelectionExcelBtn').addEventListener('click', downloadExcel);
+    </script>
+</body>
+</html>
