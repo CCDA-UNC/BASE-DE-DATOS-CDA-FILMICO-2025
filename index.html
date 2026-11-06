@@ -106,7 +106,6 @@
 </head>
 <body>
 
-    <!-- Atrapador de Errores Críticos Globales -->
     <script>
         window.onerror = function(message, source, lineno, colno, error) {
             alert("Error detectado en tu navegador: " + message + " (Línea: " + lineno + "). Por favor indícale este error a tu desarrollador.");
@@ -114,7 +113,6 @@
         };
     </script>
 
-    <!-- Pantalla de Inicio / Login -->
     <div id="login-view">
         <h1>BASE DE DATOS CDA</h1>
         <h2>Registro de Acceso</h2>
@@ -129,7 +127,6 @@
         </form>
     </div>
 
-    <!-- Contenedor Principal de la App -->
     <div id="app-container" style="display: none;">
         <h1>BASE DE DATOS CDA</h1>
         
@@ -137,7 +134,6 @@
             <div id="filter-section" style="display: none;">
                 <h2>Búsqueda y Filtros</h2> 
                 
-                <!-- Búsqueda Global Modificada: Se añadió el botón y se eliminó el width: 100% del input directo -->
                 <div style="display: flex; gap: 10px; width: 100%;">
                     <input type="text" id="globalSearch" placeholder="Escriba su búsqueda global y presione Enter o Buscar..." style="flex: 1;">
                     <button id="globalSearchBtn" style="background-color: #17a2b8; color: white;">Buscar</button>
@@ -176,7 +172,6 @@
             </div>
         </div>
         
-        <!-- Vista de Selección -->
         <div id="selection-view" style="display: none;">
             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
                 <h2 style="margin: 0;">Mi Selección</h2>
@@ -193,7 +188,6 @@
         </div>
     </div>
 
-    <!-- Ventana Emergente (Modal) -->
     <div id="detail-modal-overlay">
         <div id="detail-modal-content">
             <button id="detail-modal-close" title="Cerrar ventana">&times;</button>
@@ -443,18 +437,34 @@
             columnDatalist.appendChild(fragment);
         }
 
+        /* --- NUEVA LÓGICA DE BÚSQUEDA GLOBAL OPTIMIZADA --- */
         function applyAllFilters() {
             let filteredData = [...originalData]; 
-            const globalTerm = document.getElementById('globalSearch').value.toLowerCase().trim();
+            const rawGlobalTerm = document.getElementById('globalSearch').value.trim();
             
-            if (globalTerm) { 
-                filteredData = filteredData.filter(row => Object.values(row).some(value => String(value).toLowerCase().includes(globalTerm))); 
+            if (rawGlobalTerm) { 
+                // 1. Normalizamos lo que el usuario escribió (minúsculas, sin tildes)
+                const normalizedGlobal = rawGlobalTerm.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
+                
+                // 2. Reemplazamos las comas por espacios, y dividimos todo por espacios sueltos.
+                // Así "RUCCI, JOSE" o "Rucci Jose" se convierte en el arreglo: ["rucci", "jose"]
+                const searchTerms = normalizedGlobal.replace(/,/g, ' ').split(/\s+/).filter(t => t.length > 0);
+
+                filteredData = filteredData.filter(row => {
+                    // 3. Unimos todos los valores de la fila en un solo texto gigante
+                    // También lo normalizamos (minúsculas, sin tildes)
+                    const rowText = Object.values(row).join(' ').normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
+                    
+                    // 4. Chequeamos que TODAS las palabras que buscamos existan en alguna parte del texto de esa fila
+                    return searchTerms.every(term => rowText.includes(term));
+                });
             }
             
             const columnFilters = Object.entries(activeColumnFilters);
             if (columnFilters.length > 0) {
                 filteredData = filteredData.filter(row => {
                     return columnFilters.every(([column, filterValues]) => {
+                        // Aquí no hacemos la limpieza agresiva porque el filtro específico suele ser por opciones del datalist
                         const cellValue = row[column] ? String(row[column]).toLowerCase() : "";
                         return filterValues.every(filterValue => cellValue.includes(filterValue));
                     });
@@ -469,30 +479,24 @@
             resultsCount.textContent = `Mostrando ${filteredData.length} de ${originalData.length} registros.`;
         }
 
-        // --- SISTEMA DE BÚSQUEDA GLOBAL CON ESPERA (Agregado en lugar del evento "input") ---
         function iniciarBusquedaGlobal() {
-            // Se actualizan los textos de carga en la UI antes de trabar el hilo
             resultsCount.style.color = '#0056b3';
             resultsCount.textContent = "Buscando información, esto puede demorar unos segundos. Por favor espere...";
             tableBody.innerHTML = '<tr><td colspan="10" style="text-align:center; font-weight:bold; color:#0056b3; padding: 20px;">Buscando resultados...</td></tr>';
             
-            // Pausa minúscula para que el navegador procese los cambios de texto en pantalla
             setTimeout(() => {
                 applyAllFilters();
             }, 50);
         }
 
-        // Escuchar el clic en el botón de búsqueda
         document.getElementById('globalSearchBtn').addEventListener('click', iniciarBusquedaGlobal);
 
-        // Escuchar la tecla Enter en el input de búsqueda
         document.getElementById('globalSearch').addEventListener('keypress', (event) => {
             if (event.key === 'Enter') {
                 event.preventDefault(); 
                 iniciarBusquedaGlobal();
             }
         });
-        // -------------------------------------------------------------------------------------
 
         document.getElementById('addFilterBtn').addEventListener('click', () => {
             const column = document.getElementById('columnSelect').value; 
