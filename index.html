@@ -27,7 +27,7 @@
 
         /* PANTALLA DE INICIO (LOGIN) */
         #login-view { 
-            max-width: 600px; /* Un poco más ancho para que entre bien el título largo */
+            max-width: 600px; 
             margin: 60px auto; 
             padding: 40px; 
             background-color: #ffffff; 
@@ -58,7 +58,10 @@
         table { width: 100%; border-collapse: collapse; table-layout: fixed; }
         th, td { border: 1px solid #e0e0e0; padding: 12px; text-align: left; font-size: 14px; white-space: normal; word-break: break-word; vertical-align: top; }
         th { background-color: #f8f9fa; position: sticky; top: 0; z-index: 1; font-weight: 600; color: #333; }
-        th:nth-child(1), td:nth-child(1), th:nth-child(2), td:nth-child(2), th:nth-child(3), td:nth-child(3) { width: 60px; text-align: center; }
+        
+        /* Modificado: Fija el ancho de la 1ra, 2da y última columna (Checkbox, Detalle, Video) */
+        th:first-child, td:first-child, th:nth-child(2), td:nth-child(2), th:last-child, td:last-child { width: 60px; text-align: center; }
+        
         tr:nth-child(even) { background-color: #f8f9fa; }
         tr:hover { background-color: #f1f3f5; }
         
@@ -342,7 +345,9 @@
             });
 
             headersToShow = [];
-            const keywordsBuscadas = ['fecha', 'titulo', 'título', 'lugar', 'resumen'];
+            
+            // AGREGAMOS 'descriptores' A LA LISTA DE COLUMNAS A MOSTRAR
+            const keywordsBuscadas = ['fecha', 'titulo', 'título', 'lugar', 'resumen', 'descriptores'];
             keywordsBuscadas.forEach(kw => {
                 const found = headers.find(h => h.toLowerCase().includes(kw) && !headersToShow.includes(h));
                 if (found) headersToShow.push(found);
@@ -372,13 +377,18 @@
             tableHead.innerHTML = ''; tableBody.innerHTML = ''; 
             const headerRow = document.createElement('tr');
             
+            // ARMADO DEL ENCABEZADO DE LA TABLA
             headerRow.innerHTML += `<th><input type="checkbox" id="selectAllCheckbox" title="Seleccionar todo"></th>`;
             headerRow.innerHTML += `<th>Detalle</th>`; 
-            headerRow.innerHTML += `<th>Video</th>`;  
             
+            // Primero ponemos todas las columnas de texto (Fecha, Título, Lugar, Resumen, Descriptores)
             for (const header of headersToShow) { 
                 const th = document.createElement('th'); th.textContent = header; headerRow.appendChild(th); 
             }
+            
+            // Y la columna Video al final
+            headerRow.innerHTML += `<th>Video</th>`;  
+            
             tableHead.appendChild(headerRow); 
             
             if (data.length === 0) { 
@@ -399,6 +409,14 @@
                 tdDetail.innerHTML = `<button type="button" class="detail-btn" data-row-id="${rowID}" title="Abrir ventana emergente">🔍</button>`; 
                 tr.appendChild(tdDetail);
 
+                // Llenamos las columnas de texto
+                for (const header of headersToShow) { 
+                     const td = document.createElement('td'); 
+                     td.innerHTML = `<div class="cell-content">${row[header] || ''}</div>`; 
+                     tr.appendChild(td); 
+                }
+
+                // Generamos y colocamos la columna de video al final
                 const tdVideo = document.createElement('td');
                 const videoUrl = row[videoLinkColumn] ? String(row[videoLinkColumn]).trim() : ''; 
                 if (videoUrl && (videoUrl.startsWith('http') || videoUrl.startsWith('/'))) { 
@@ -406,11 +424,6 @@
                 }
                 tr.appendChild(tdVideo);
 
-                for (const header of headersToShow) { 
-                     const td = document.createElement('td'); 
-                     td.innerHTML = `<div class="cell-content">${row[header] || ''}</div>`; 
-                     tr.appendChild(td); 
-                }
                 fragment.appendChild(tr);
             });
             tableBody.appendChild(fragment); 
@@ -689,8 +702,11 @@
             document.getElementById('selectionCount').textContent = `Mostrando ${selectedData.length} items seleccionados.`;
             
             const headerRow = document.createElement('tr'); 
-            headerRow.innerHTML = '<th>Quitar</th><th>Detalle</th><th>Video</th>'; 
+            
+            // Aplicamos la misma lógica en la tabla de Selección: Columnas de texto primero, Video al final
+            headerRow.innerHTML = '<th>Quitar</th><th>Detalle</th>'; 
             headersToShow.forEach(h => { const th = document.createElement('th'); th.textContent = h; headerRow.appendChild(th); });
+            headerRow.innerHTML += '<th>Video</th>';
             sHead.appendChild(headerRow); 
             
             if (selectedData.length === 0) return;
@@ -699,9 +715,11 @@
                 const tr = document.createElement('tr'); 
                 const rowID = row[idColumn];
                 tr.innerHTML = `<td><button class="remove-item-btn" data-row-id="${rowID}" style="background:#dc3545; color:white; padding:6px; border-radius:4px; border:none; cursor:pointer;">&times;</button></td>
-                                <td><button type="button" class="detail-btn" data-row-id="${rowID}">🔍</button></td>
-                                <td>${row[videoLinkColumn] ? `<a href="${row[videoLinkColumn]}" target="_blank" class="video-direct-link">▶️</a>` : ''}</td>`;
+                                <td><button type="button" class="detail-btn" data-row-id="${rowID}">🔍</button></td>`;
+                
                 headersToShow.forEach(h => { tr.innerHTML += `<td><div class="cell-content">${row[h] || ''}</div></td>`; });
+                
+                tr.innerHTML += `<td>${row[videoLinkColumn] ? `<a href="${row[videoLinkColumn]}" target="_blank" class="video-direct-link">▶️</a>` : ''}</td>`;
                 fragment.appendChild(tr);
             }); 
             sBody.appendChild(fragment);
@@ -722,34 +740,4 @@
             let data = selectedRowIDs.size > 0 ? originalData.filter(row => selectedRowIDs.has(row[idColumn])) : currentVisibleData;
             if(data.length === 0) return;
             
-            const exportData = data.map(row => { const newRow = { ...row }; delete newRow[idColumn]; return newRow; });
-            const csv = Papa.unparse(exportData, { header: true });
-            const blob = new Blob([csv], { type: 'text/csv;charset=utf-8-sig;' }); 
-            const link = document.createElement('a'); link.href = URL.createObjectURL(blob); link.download = "reporte.csv";
-            link.click();
-        }
-        
-        if (typeof Papa !== 'undefined') {
-            document.getElementById('downloadBtn').addEventListener('click', downloadCSV);
-            document.getElementById('downloadSelectionBtn').addEventListener('click', downloadCSV);
-        }
-
-        function downloadExcel() {
-            if (typeof XLSX === 'undefined') { alert('La librería de Excel no cargó correctamente.'); return; }
-            let data = selectedRowIDs.size > 0 ? originalData.filter(row => selectedRowIDs.has(row[idColumn])) : currentVisibleData;
-            if(data.length === 0) return;
-            
-            const exportData = data.map(row => { const newRow = { ...row }; delete newRow[idColumn]; return newRow; });
-            const ws = XLSX.utils.json_to_sheet(exportData);
-            const wb = XLSX.utils.book_new();
-            XLSX.utils.book_append_sheet(wb, ws, "Datos");
-            XLSX.writeFile(wb, "reporte.xlsx");
-        }
-        
-        if (typeof XLSX !== 'undefined') {
-            document.getElementById('downloadExcelBtn').addEventListener('click', downloadExcel);
-            document.getElementById('downloadSelectionExcelBtn').addEventListener('click', downloadExcel);
-        }
-    </script>
-</body>
-</html>
+            const exportData = data.map(row => { const newRow = { ...row }; delete newRow
