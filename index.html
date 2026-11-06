@@ -196,7 +196,6 @@
         let headers = []; 
         let headersToShow = []; 
         let activeColumnFilters = {}; 
-        let columnUniqueValues = new Map(); 
         let currentVisibleData = []; 
         let selectedRowIDs = new Set(); 
         
@@ -301,9 +300,9 @@
             if (foundLinkCol) videoLinkColumn = foundLinkCol;
 
             currentVisibleData = [...originalData]; 
-            rebuildDatalists(originalData); 
             populateColumnSelect(); 
             renderTable(originalData); 
+            updateColumnDatalist();
             
             document.getElementById('filter-section').style.display = 'block'; 
             document.getElementById('downloadBtn').style.display = 'inline-block'; 
@@ -364,19 +363,6 @@
             updateSelectAllCheckboxState();
         }
 
-        // Reconstruye las sugerencias dinámicamente según los datos visibles
-        function rebuildDatalists(dataToProcess) {
-            columnUniqueValues = new Map(); 
-            headers.forEach(header => { if(header && header !== idColumn) columnUniqueValues.set(header, new Set()); });
-            for (const row of dataToProcess) {
-                for (const header of columnUniqueValues.keys()) { 
-                    let cellValue = row[header] ? String(row[header]).trim() : "";
-                    if (cellValue) columnUniqueValues.get(header).add(cellValue); 
-                }
-            } 
-            updateColumnDatalist();
-        }
-
         function populateColumnSelect() {
             const columnSelect = document.getElementById('columnSelect');
             columnSelect.innerHTML = ''; 
@@ -386,18 +372,39 @@
                     columnSelect.appendChild(option); 
                 }
             }
-            updateColumnDatalist();
         }
 
+        // RECONSTRUCCIÓN ESTRICTA DE SUGERENCIAS SEGÚN LOS REGISTROS FILTRADOS EN PANTALLA
         function updateColumnDatalist() {
             const columnSelect = document.getElementById('columnSelect');
             const columnDatalist = document.getElementById('column-suggestions');
-            const valuesSet = columnUniqueValues.get(columnSelect.value);
+            const selectedColumn = columnSelect.value; 
+            
             columnDatalist.innerHTML = ''; 
-            if (!valuesSet) return;
-            Array.from(valuesSet).sort((a, b) => a.localeCompare(b)).forEach(value => { 
-                const option = document.createElement('option'); option.value = value; columnDatalist.appendChild(option); 
+            if (!selectedColumn) return;
+
+            const valuesSet = new Set();
+            
+            // Recorremos SOLO los datos que están actualmente visibles tras la búsqueda global/filtros
+            currentVisibleData.forEach(row => {
+                let cellValue = row[selectedColumn] ? String(row[selectedColumn]).trim() : "";
+                if (cellValue) {
+                    valuesSet.add(cellValue);
+                }
             });
+
+            const sortedValues = Array.from(valuesSet).sort((a, b) => a.localeCompare(b));
+            
+            // Limitamos a un máximo de 100 sugerencias relevantes para no sobrecargar el navegador
+            const limitedValues = sortedValues.slice(0, 100);
+            
+            const fragment = document.createDocumentFragment();
+            limitedValues.forEach(value => { 
+                const option = document.createElement('option'); 
+                option.value = value; 
+                fragment.appendChild(option); 
+            });
+            columnDatalist.appendChild(fragment);
         }
 
         function applyAllFilters() {
@@ -418,11 +425,11 @@
                 });
             }
             
-            renderTable(filteredData); 
             currentVisibleData = filteredData; 
+            renderTable(filteredData); 
             
-            // Actualizar sugerencias de filtrado solo con los resultados obtenidos
-            rebuildDatalists(filteredData);
+            // FORZAR LA ACTUALIZACIÓN DE SUGERENCIAS AL FILTRAR
+            updateColumnDatalist();
             
             resultsCount.textContent = `Mostrando ${filteredData.length} de ${originalData.length} registros.`;
         }
@@ -434,7 +441,8 @@
             if (!activeColumnFilters[column]) activeColumnFilters[column] = [];
             if (!activeColumnFilters[column].includes(value)) activeColumnFilters[column].push(value);
             document.getElementById('columnFilterValue').value = ''; 
-            renderActiveFilters(); applyAllFilters();
+            renderActiveFilters(); 
+            applyAllFilters();
         });
 
         function renderActiveFilters() {
@@ -464,8 +472,8 @@
             activeColumnFilters = {}; 
             renderActiveFilters(); 
             currentVisibleData = [...originalData]; 
-            rebuildDatalists(originalData);
             renderTable(originalData); 
+            updateColumnDatalist();
             resultsCount.textContent = `Mostrando ${originalData.length} de ${originalData.length} registros.`;
         });
 
