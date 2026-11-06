@@ -9,19 +9,15 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 
     <style>
-        /* Estilos Generales */
         body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; margin: 0; padding: 20px; background-color: #f4f7f6; color: #333; }
         h1, h2, h3 { color: #0056b3; }
         
-        /* Contenedor Principal */
         #app-container { max-width: 1200px; margin: 0 auto; background-color: #ffffff; border-radius: 8px; padding: 20px; box-shadow: 0 4px 12px rgba(0,0,0,0.05); }
         
-        /* Formularios y Botones Generales */
         input[type="text"], input[type="email"], input[type="tel"], select, textarea { font-size: 15px; padding: 12px; margin: 5px 5px 5px 0; border-radius: 6px; border: 1px solid #ccd0d5; box-sizing: border-box; }
         button { padding: 10px 15px; border-radius: 6px; font-weight: 500; font-size: 14px; border: none; cursor: pointer; transition: all 0.2s ease; }
         button:hover { opacity: 0.9; transform: translateY(-1px); }
         
-        /* Colores de Botones */
         #addFilterBtn { background-color: #007bff; color: white; }
         #resetBtn, #clearSelectionBtn { background-color: #dc3545; color: white; }
         #downloadBtn, #downloadSelectionBtn { background-color: #28a745; color: white; } 
@@ -29,7 +25,7 @@
         #viewSelectionBtn { background-color: #ffc107; color: black; font-weight: bold; }
         #backToSearchBtn { background-color: #6c757d; color: white; }
 
-        /* PANTALLA DE INICIO (LOGIN) MEJORADA */
+        /* PANTALLA DE INICIO (LOGIN) */
         #login-view { 
             max-width: 450px; 
             margin: 80px auto; 
@@ -41,15 +37,10 @@
         }
         #login-view h1 { margin-top: 0; font-size: 24px; margin-bottom: 5px; }
         #login-view h2 { font-size: 16px; color: #666; margin-bottom: 25px; font-weight: normal; }
-        #login-form { 
-            display: flex; 
-            flex-direction: column; 
-            gap: 15px; 
-            align-items: stretch; /* Asegura que se estiren al 100% del ancho */
-        }
+        #login-form { display: flex; flex-direction: column; gap: 15px; align-items: stretch; }
         #login-form input, #login-form textarea { width: 100%; font-family: inherit; }
         #login-form textarea { resize: vertical; min-height: 80px; }
-        #login-form button { background-color: #0056b3; color: white; padding: 14px; font-size: 16px; font-weight: bold; margin-top: 10px; }
+        #login-form button { background-color: #28a745; color: white; padding: 14px; font-size: 16px; font-weight: bold; margin-top: 10px; }
 
         /* Filtros y Tablas */
         #filter-section { margin-bottom: 20px; padding-bottom: 20px; border-bottom: 1px solid #e0e0e0; }
@@ -64,16 +55,16 @@
         tr:nth-child(even) { background-color: #f8f9fa; }
         tr:hover { background-color: #f1f3f5; }
         
-        .detail-btn { background: none; border: none; font-size: 20px; cursor: pointer; padding: 0; color: #007bff; display: inline-block; box-shadow: none; }
-        .detail-btn:hover { transform: scale(1.1); background: none; }
+        .detail-btn { background: none; border: none; font-size: 20px; cursor: pointer; padding: 0; color: #007bff; }
+        .detail-btn:hover { transform: scale(1.1); }
         .video-direct-link { font-size: 20px; text-decoration: none; display: inline-block; transition: transform 0.2s; }
         .video-direct-link:hover { transform: scale(1.1); }
-        #resultsCount, #selectionCount { font-size: 1.1em; font-weight: 500; margin-bottom: 10px; color: #495057; }
+        #resultsCount { font-size: 1.1em; font-weight: 500; margin-bottom: 10px; color: #495057; }
         td .cell-content { max-height: 4.5em; overflow: hidden; display: block; }
 
-        /* VENTANA EMERGENTE (MODAL) MEJORADA */
+        /* VENTANA EMERGENTE (MODAL) */
         #detail-modal-overlay { 
-            display: none; /* Oculto por defecto */
+            display: none; 
             position: fixed; 
             top: 0; left: 0; 
             width: 100vw; height: 100vh; 
@@ -93,10 +84,7 @@
             overflow-y: auto; 
             box-shadow: 0 15px 40px rgba(0,0,0,0.2); 
             position: relative; 
-            animation: modalFadeIn 0.3s ease; 
         }
-        @keyframes modalFadeIn { from { opacity: 0; transform: translateY(-20px); } to { opacity: 1; transform: translateY(0); } }
-        
         #detail-modal-close { 
             position: absolute; 
             top: 15px; right: 20px; 
@@ -106,22 +94,19 @@
             font-weight: normal; 
             cursor: pointer; 
             color: #999; 
-            line-height: 1;
-            padding: 0;
-            box-shadow: none;
         }
-        #detail-modal-close:hover { color: #dc3545; transform: none; }
+        #detail-modal-close:hover { color: #dc3545; }
         
         #detail-content div { margin-bottom: 15px; padding-bottom: 10px; border-bottom: 1px solid #f0f0f0; font-size: 15px; line-height: 1.5; }
         #detail-content div:last-child { border-bottom: none; }
         #detail-content strong { color: #0056b3; display: inline-block; margin-right: 5px; font-weight: 600; }
-        .embedded-video-container { position: relative; overflow: hidden; width: 100%; padding-top: 56.25%; margin-top: 15px; border-radius: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.1); }
+        .embedded-video-container { position: relative; overflow: hidden; width: 100%; padding-top: 56.25%; margin-top: 15px; border-radius: 8px; }
         .embedded-video-container iframe { position: absolute; top: 0; left: 0; bottom: 0; right: 0; width: 100%; height: 100%; border: none; }
     </style>
 </head>
 <body>
 
-    <!-- Pantalla de Inicio / Login Vertical -->
+    <!-- Pantalla de Inicio / Login -->
     <div id="login-view">
         <h1>BASE DE DATOS CDA</h1>
         <h2>Registro de Acceso</h2>
@@ -132,7 +117,7 @@
             <textarea id="login-proposito" placeholder="Propósito de uso..." required></textarea>
             <input type="email" id="login-email" placeholder="Email de contacto (archfilm@ffyh.unc.edu.ar)" required>
             <input type="tel" id="login-telefono" placeholder="Teléfono" required>
-            <button type="submit">Ingresar a la Base de Datos</button>
+            <button type="submit">Ingresar</button>
         </form>
     </div>
 
@@ -171,7 +156,7 @@
                 <div id="table-wrapper">
                     <table id="dataTable">
                         <thead></thead>
-                        <tbody><tr><td colspan="10">Cargando datos...</td></tr></tbody>
+                        <tbody><tr><td colspan="10">Cargando datos, por favor espere...</td></tr></tbody>
                     </table>
                 </div>
             </div>
@@ -199,9 +184,7 @@
         <div id="detail-modal-content">
             <button id="detail-modal-close" title="Cerrar ventana">&times;</button>
             <h2 style="margin-top: 0; border-bottom: 2px solid #0056b3; padding-bottom: 12px; margin-bottom: 20px;">Detalle del Registro</h2>
-            <div id="detail-content">
-                <!-- Aquí se inyectan los detalles -->
-            </div>
+            <div id="detail-content"></div>
         </div>
     </div>
 
@@ -221,12 +204,14 @@
         const tableHead = document.querySelector('#dataTable thead');
         const tableBody = document.querySelector('#dataTable tbody');
 
-        // Lógica de Login
+        // Login y Carga
         document.getElementById('login-form').addEventListener('submit', function(event) {
             event.preventDefault(); 
             const authorizedEmail = "archfilm@ffyh.unc.edu.ar";
             const inputEmail = document.getElementById('login-email').value.trim();
+            
             if (inputEmail.toLowerCase() === authorizedEmail.toLowerCase()) {
+                // Obligar a que la app-container se muestre, sin importar si los datos fallan luego
                 document.getElementById('login-view').style.display = 'none';
                 document.getElementById('app-container').style.display = 'block';
                 loadCsvFromUrl();
@@ -238,7 +223,8 @@
         function loadCsvFromUrl() {
             const csvUrl = "https://docs.google.com/spreadsheets/d/e/2PACX-1vQYwzS5XouerY_Pw_Bwb-mWrnU3ND6Pzi_q1GI_usW8VwC-d2clXXK75Jrlw-oa8XoVXqp0ff-KZH7P/pub?gid=1068718906&single=true&output=csv"; 
             
-            resultsCount.textContent = "Conectando con Google Sheets...";
+            resultsCount.textContent = "Conectando con la Base de Datos...";
+            tableBody.innerHTML = '<tr><td colspan="10" style="text-align:center;">Descargando información. Esto puede tomar unos segundos...</td></tr>';
             
             Papa.parse(csvUrl, {
                 download: true, 
@@ -247,19 +233,31 @@
                 encoding: "UTF-8", 
                 complete: function(results) { 
                     try {
-                        if (!results || !results.data || results.data.length === 0) throw new Error("Archivo vacío.");
+                        if (!results || !results.data || results.data.length === 0) {
+                            throw new Error("El documento CSV está vacío o no se pudo acceder.");
+                        }
                         processLoadedData(results); 
                     } catch (err) {
-                        resultsCount.textContent = "Error: " + err.message;
+                        showError("Error de datos: " + err.message);
                     }
                 },
                 error: function(err) {
-                    resultsCount.textContent = "Error crítico de conexión.";
+                    showError("Error de conexión: " + err.message + ". Verifica que el link de Google Sheets sea público.");
                 }
             });
         }
 
+        function showError(message) {
+            resultsCount.textContent = "Error al cargar los datos.";
+            resultsCount.style.color = "#dc3545";
+            tableBody.innerHTML = `<tr><td colspan="10" style="color:#dc3545; text-align:center; padding: 20px;">
+                <strong>Ocurrió un problema:</strong><br>${message}
+            </td></tr>`;
+        }
+
         function processLoadedData(results) {
+            resultsCount.textContent = "Procesando información...";
+            
             const rawHeaders = results.data[0];
             const rawDataRows = results.data.slice(1);
             const headerMap = new Map();
@@ -284,7 +282,7 @@
                     
                     const values = indices.map(index => {
                         let val = String(rawRow[index] || "").trim();
-                        // LIMPIEZA DEL S/D
+                        // LIMPIEZA DE "S/D"
                         if (val.toUpperCase() === "S/D" || val.toUpperCase() === "S/D;" || val.toUpperCase() === "S/D.") {
                             return "";
                         }
@@ -323,6 +321,7 @@
             document.getElementById('viewSelectionBtn').style.display = 'inline-block'; 
             document.getElementById('clearSelectionBtn').style.display = 'inline-block'; 
             
+            resultsCount.style.color = '#495057'; // Color normal
             resultsCount.textContent = `Mostrando ${originalData.length} de ${originalData.length} registros.`;
         }
 
@@ -340,7 +339,7 @@
             tableHead.appendChild(headerRow); 
             
             if (data.length === 0) { 
-                tableBody.innerHTML = `<tr><td colspan="10" style="text-align:center;">No se encontraron resultados.</td></tr>`; return; 
+                tableBody.innerHTML = `<tr><td colspan="10" style="text-align:center;">No se encontraron resultados para su búsqueda.</td></tr>`; return; 
             }
             
             const fragment = document.createDocumentFragment();
@@ -474,18 +473,16 @@
         document.getElementById('globalSearch').addEventListener('input', applyAllFilters);
         document.getElementById('columnSelect').addEventListener('change', updateColumnDatalist);
 
-        // --- MANEJO DE CLICS EN TABLA Y APERTURA DE MODAL ---
         tableBody.addEventListener('click', (event) => {
             const target = event.target; 
-            // Si el clic viene del botón lupa o del icono dentro del botón
-            const btn = target.closest('.detail-btn');
+            const btnDetail = target.closest('.detail-btn');
             
             if (target.classList.contains('row-checkbox')) {
                 if (target.checked) selectedRowIDs.add(target.dataset.rowId); 
                 else selectedRowIDs.delete(target.dataset.rowId);
                 updateSelectAllCheckboxState(); updateSelectionCount();
-            } else if (btn) { 
-                showDetails(btn.dataset.rowId); 
+            } else if (btnDetail) { 
+                showDetails(btnDetail.dataset.rowId); 
             }
         });
 
@@ -513,59 +510,4 @@
             else { selectAllCheckbox.checked = false; selectAllCheckbox.indeterminate = false; }
         }
 
-        function updateSelectionCount() { 
-            const btn = document.getElementById('viewSelectionBtn');
-            btn.textContent = `Mi Selección (${selectedRowIDs.size})`; 
-            if(selectedRowIDs.size > 0) btn.style.display = 'inline-block';
-        }
-
-        // --- FUNCIONES DEL MODAL (VENTANA EMERGENTE) ---
-        function showDetails(rowID) {
-            const record = originalData.find(row => row[idColumn] === rowID); 
-            if (!record) return; 
-            
-            const detailContent = document.getElementById('detail-content');
-            detailContent.innerHTML = ''; 
-            
-            headers.forEach(header => {
-                if (header && header !== idColumn) { 
-                     let value = record[header] ? String(record[header]).trim() : ''; 
-                     // Doble validación para omitir "S/D"
-                     if (value.toUpperCase() === "S/D" || value === "") {
-                         return; // Saltar este campo, no mostrarlo
-                     }
-                     
-                     const detailItem = document.createElement('div');
-                     if (header === videoLinkColumn) {
-                         let videoEmbedHtml = '';
-                         let youtubeMatch = value.match(/^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|\&v=)([^#\&\?]*).*/);
-                         if (youtubeMatch && youtubeMatch[2].length === 11) { 
-                             videoEmbedHtml = `<div class="embedded-video-container"><iframe src="https://www.youtube.com/embed/${youtubeMatch[2]}" frameborder="0" allowfullscreen></iframe></div>`; 
-                         } else if (value.startsWith('http') || value.startsWith('/')) { 
-                             detailItem.innerHTML = `<strong>${header}:</strong> <a href="${value}" target="_blank" style="color:#28a745;">Ver Recurso ↗</a>`; 
-                         } else { detailItem.innerHTML = `<strong>${header}:</strong> ${value}`; }
-                         if (videoEmbedHtml) detailItem.innerHTML = `<strong>${header}:</strong>${videoEmbedHtml}`;
-                     } else { 
-                         detailItem.innerHTML = `<strong>${header}:</strong> <span>${value}</span>`; 
-                     }
-                     detailContent.appendChild(detailItem);
-                }
-            }); 
-            
-            if (detailContent.innerHTML === '') {
-                detailContent.innerHTML = '<p>No hay información adicional disponible.</p>';
-            }
-
-            // Cambiar display a "flex" para que aparezca centrado en pantalla
-            document.getElementById('detail-modal-overlay').style.display = 'flex'; 
-            document.body.style.overflow = 'hidden'; // Evitar scroll de fondo
-        }
-
-        function closeModal() {
-            document.getElementById('detail-modal-overlay').style.display = 'none'; 
-            document.body.style.overflow = 'auto'; // Restaurar scroll
-        }
-
-        // Eventos para cerrar el Modal
-        document.getElementById('detail-modal-close').addEventListener('click', closeModal);
-        document.getElementById('detail-modal-overlay').addEventListener('
+        function updateSelectionCount() {
