@@ -204,15 +204,10 @@
         const tableHead = document.querySelector('#dataTable thead');
         const tableBody = document.querySelector('#dataTable tbody');
 
-        // Login sin restricción estricta de correo para permitir el paso
         document.getElementById('login-form').addEventListener('submit', function(event) {
-            event.preventDefault(); // Evita que la página se reinicie al enviar
-            
-            // Ocultar formulario de ingreso y mostrar la app
+            event.preventDefault(); 
             document.getElementById('login-view').style.display = 'none';
             document.getElementById('app-container').style.display = 'block';
-            
-            // Cargar los datos
             loadCsvFromUrl();
         });
 
@@ -369,6 +364,7 @@
             updateSelectAllCheckboxState();
         }
 
+        // Reconstruye las sugerencias dinámicamente según los datos visibles
         function rebuildDatalists(dataToProcess) {
             columnUniqueValues = new Map(); 
             headers.forEach(header => { if(header && header !== idColumn) columnUniqueValues.set(header, new Set()); });
@@ -378,6 +374,7 @@
                     if (cellValue) columnUniqueValues.get(header).add(cellValue); 
                 }
             } 
+            updateColumnDatalist();
         }
 
         function populateColumnSelect() {
@@ -423,6 +420,10 @@
             
             renderTable(filteredData); 
             currentVisibleData = filteredData; 
+            
+            // Actualizar sugerencias de filtrado solo con los resultados obtenidos
+            rebuildDatalists(filteredData);
+            
             resultsCount.textContent = `Mostrando ${filteredData.length} de ${originalData.length} registros.`;
         }
 
@@ -460,8 +461,11 @@
 
         document.getElementById('resetBtn').addEventListener('click', () => {
             document.getElementById('globalSearch').value = ''; 
-            activeColumnFilters = {}; renderActiveFilters(); renderTable(originalData); 
+            activeColumnFilters = {}; 
+            renderActiveFilters(); 
             currentVisibleData = [...originalData]; 
+            rebuildDatalists(originalData);
+            renderTable(originalData); 
             resultsCount.textContent = `Mostrando ${originalData.length} de ${originalData.length} registros.`;
         });
 
