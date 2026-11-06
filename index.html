@@ -11,6 +11,7 @@
     <style>
         body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; margin: 0; padding: 20px; background-color: #f4f7f6; color: #333; position: relative; }
         h1, h2 { color: #0056b3; }
+        #error-banner { display: none; background-color: #f8d7da; color: #721c24; padding: 15px; margin-bottom: 20px; border: 1px solid #f5c6cb; border-radius: 5px; font-weight: bold; }
         #app-container { max-width: 1200px; margin: 0 auto; background-color: #ffffff; border-radius: 8px; padding: 20px; box-shadow: 0 4px 12px rgba(0,0,0,0.05); }
         #filter-section, #results-section, #selection-view { margin-bottom: 20px; padding-bottom: 20px; border-bottom: 1px solid #e0e0e0; }
         input[type="text"], input[type="email"], input[type="tel"], select, button, input[type="file"], textarea { font-size: 16px; padding: 10px; margin: 5px 5px 5px 0; border-radius: 5px; border: 1px solid #ccc; }
@@ -32,29 +33,59 @@
         th, td { border: 1px solid #ddd; padding: 10px; text-align: left; font-size: 14px; white-space: normal; word-break: break-word; vertical-align: top; }
         th { background-color: #f0f0f0; position: sticky; top: 0; z-index: 1; white-space: nowrap; }
         th:nth-child(1), td:nth-child(1), th:nth-child(2), td:nth-child(2), th:nth-child(3), td:nth-child(3) { width: 50px; text-align: center; padding: 5px; vertical-align: middle; }
+        .detail-btn { background: none; border: none; font-size: 20px; cursor: pointer; padding: 5px; color: #007bff; display: inline-block;Entiendo el problema. Cuando la pantalla se queda en blanco (o solo se ve la estructura sin datos) suele deberse a que **ocurrió un error silencioso al leer el archivo CSV** o a que **los nombres de las columnas en tu Excel/Sheets no coinciden exactamente** con lo que el código está buscando, y al no tener un sistema de avisos de error, el proceso se interrumpe.
+
+He ajustado el código agregando **mensajes de estado visibles** para que, si algo falla, te diga exactamente qué es en la pantalla en lugar de quedarse en blanco. También hice más flexible la búsqueda de las columnas ("fecha", "titulo", etc.) para que no falle si tienen espacios extra o mayúsculas.
+
+Por favor, reemplaza todo el archivo HTML en tu GitHub con este nuevo código:
+
+```html
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>BASE DE DATOS CDA</title>
+    
+    <script src="[https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.3.2/papaparse.min.js](https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.3.2/papaparse.min.js)"></script>
+    <script src="[https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js](https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js)"></script>
+
+    <style>
+        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; margin: 0; padding: 20px; background-color: #f4f7f6; color: #333; }
+        h1, h2 { color: #0056b3; }
+        #app-container { max-width: 1200px; margin: 0 auto; background-color: #ffffff; border-radius: 8px; padding: 20px; box-shadow: 0 4px 12px rgba(0,0,0,0.05); }
+        #filter-section, #results-section, #selection-view { margin-bottom: 20px; padding-bottom: 20px; border-bottom: 1px solid #e0e0e0; }
+        input[type="text"], input[type="email"], input[type="tel"], select, button, textarea { font-size: 16px; padding: 10px; margin: 5px 5px 5px 0; border-radius: 5px; border: 1px solid #ccc; }
+        button { background-color: #007bff; color: white; border: none; cursor: pointer; transition: background-color 0.2s; }
+        button:hover { background-color: #0056b3; }
+        #resetBtn, #clearSelectionBtn { background-color: #dc3545; }
+        #downloadBtn, #downloadSelectionBtn { background-color: #28a745; } 
+        #downloadExcelBtn, #downloadSelectionExcelBtn { background-color: #1a73e8; } 
+        #viewSelectionBtn { background-color: #ffc107; color: black; }
+        .filter-tag { display: inline-block; background-color: #e0e0e0; padding: 5px 10px; border-radius: 15px; margin: 5px; font-size: 14px; }
+        .filter-tag span { color: #c00; cursor: pointer; font-weight: bold; margin-left: 5px; }
+        #table-wrapper, #selection-table-wrapper { max-height: 600px; overflow: auto; border: 1px solid #ddd; }
+        table { width: 100%; border-collapse: collapse; table-layout: fixed; }
+        th, td { border: 1px solid #ddd; padding: 10px; text-align: left; font-size: 14px; white-space: normal; word-break: break-word; vertical-align: top; }
+        th { background-color: #f0f0f0; position: sticky; top: 0; z-index: 1; }
+        th:nth-child(1), td:nth-child(1), th:nth-child(2), td:nth-child(2), th:nth-child(3), td:nth-child(3) { width: 50px; text-align: center; }
         .detail-btn { background: none; border: none; font-size: 20px; cursor: pointer; padding: 5px; color: #007bff; display: inline-block; transition: transform 0.2s; }
         .detail-btn:hover { transform: scale(1.2); }
-        .video-direct-link { background: none; border: none; font-size: 18px; cursor: pointer; padding: 5px; text-decoration: none; color: #007bff; display: inline-block; }
-        .video-direct-link:hover { color: #0056b3; }
+        .video-direct-link { background: none; border: none; font-size: 18px; cursor: pointer; text-decoration: none; color: #007bff; }
         tr:nth-child(even) { background-color: #f9f9f9; }
-        #resultsCount, #selectionCount { font-size: 1.1em; font-weight: bold; margin-bottom: 10px; }
+        #resultsCount, #selectionCount { font-size: 1.1em; font-weight: bold; margin-bottom: 10px; color: #d32f2f; }
         td .cell-content { max-height: 4.5em; overflow: hidden; display: block; }
+        
+        /* Modal y Login */
         #login-view { max-width: 500px; margin: 50px auto; padding: 30px; background-color: #ffffff; border-radius: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.1); }
-        #login-view h1 { color: #0056b3; margin-top: 0; text-align: center; }
         #login-form { display: flex; flex-direction: column; gap: 15px; }
         #login-form input, #login-form textarea { width: 95%; }
-        #login-form textarea { min-height: 80px; resize: vertical; }
         #login-form button { background-color: #28a745; font-weight: bold; }
-        #login-form button:hover { background-color: #1e7e34; }
         #detail-modal-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background-color: rgba(0, 0, 0, 0.6); z-index: 1000; justify-content: center; align-items: center; }
         #detail-modal-content { background-color: #fff; padding: 30px; border-radius: 8px; max-width: 80%; max-height: 80%; overflow-y: auto; box-shadow: 0 5px 15px rgba(0,0,0,0.3); position: relative; }
         #detail-modal-close { position: absolute; top: 10px; right: 15px; background: none; border: none; font-size: 24px; font-weight: bold; cursor: pointer; color: #aaa; }
-        #detail-modal-close:hover { color: #333; }
         #detail-content div { margin-bottom: 10px; padding-bottom: 5px; border-bottom: 1px solid #eee; }
-        #detail-content div:last-child { border-bottom: none; }
         #detail-content strong { color: #0056b3; display: block; margin-bottom: 3px; }
-        #detail-content .video-link a { font-weight: bold; color: #28a745; text-decoration: none; }
-        #detail-content .video-link a:hover { text-decoration: underline; }
         .embedded-video-container { position: relative; overflow: hidden; width: 100%; padding-top: 56.25%; margin-top: 10px; }
         .embedded-video-container iframe { position: absolute; top: 0; left: 0; bottom: 0; right: 0; width: 100%; height: 100%; border: none; }
     </style>
@@ -62,7 +93,7 @@
 <body>
 
     <div id="login-view">
-        <h1>BASE DE DATOS CDA</h1>
+        <h1 style="text-align: center;">BASE DE DATOS CDA</h1>
         <h2>Registro de Acceso</h2>
         <form id="login-form">
             <input type="text" id="login-nombre" placeholder="Nombre" required>
@@ -80,35 +111,36 @@
         <div id="main-view">
             <div id="filter-section" style="display: none;">
                 <h2>Búsqueda y Filtros</h2> 
-                <div>
-                    <input type="text" id="globalSearch" placeholder="Búsqueda global en todos los campos..." style="width: 95%;">
-                </div>
-                <p><strong>O usa filtros por columna específicos:</strong></p> 
+                <div><input type="text" id="globalSearch" placeholder="Búsqueda global..." style="width: 95%;"></div>
                 <div style="margin-top: 15px;">
                     <select id="columnSelect"></select>
-                    <input type="text" id="columnFilterValue" list="column-suggestions" placeholder="Valor a buscar en la columna...">
+                    <input type="text" id="columnFilterValue" list="column-suggestions" placeholder="Valor...">
                     <button id="addFilterBtn">Agregar Filtro</button>
-                    <button id="resetBtn">Resetear Filtros</button>
+                    <button id="resetBtn">Resetear</button>
                     <datalist id="column-suggestions"></datalist>
                 </div>
                 <h3>Filtros Activos:</h3>
                 <div id="activeFilters"><p>Ninguno.</p></div>
             </div>
+            
             <div id="results-section">
                 <h2>Resultados</h2>
                 <button id="viewSelectionBtn" style="display: none;">Mi Selección (0)</button>
                 <button id="clearSelectionBtn" style="display: none;">Limpiar Selección</button>
-                <button id="downloadBtn" style="display: none;">Descargar (CSV)</button>
-                <button id="downloadExcelBtn" style="display: none;">Descargar (Excel)</button> 
-                <div id="resultsCount">Cargando datos...</div>
+                <button id="downloadBtn" style="display: none;">Descargar CSV</button>
+                <button id="downloadExcelBtn" style="display: none;">Descargar Excel</button> 
+                
+                <div id="resultsCount">Inicializando sistema...</div>
+                
                 <div id="table-wrapper">
                     <table id="dataTable">
                         <thead></thead>
-                        <tbody><tr><td>Por favor, espera a que carguen los datos...</td></tr></tbody>
+                        <tbody><tr><td>Cargando datos...</td></tr></tbody>
                     </table>
                 </div>
             </div>
         </div>
+        
         <div id="selection-view" style="display: none;">
             <h2>Mi Selección</h2>
             <button id="backToSearchBtn">Volver a la Búsqueda</button>
@@ -116,10 +148,7 @@
             <button id="downloadSelectionExcelBtn">Descargar Selección (Excel)</button> 
             <div id="selectionCount" style="margin-top:15px;"></div>
             <div id="selection-table-wrapper">
-                <table id="selectionTable">
-                    <thead></thead>
-                    <tbody></tbody>
-                </table>
+                <table id="selectionTable"><thead></thead><tbody></tbody></table>
             </div>
         </div>
     </div>
@@ -133,81 +162,70 @@
     </div>
 
     <script>
-        let idColumn = ''; 
-        let selectionEnabled = true; 
-        const videoLinkColumn = 'Link'; 
-
-        const filterSection = document.getElementById('filter-section');
-        const globalSearch = document.getElementById('globalSearch'); 
-        const columnSelect = document.getElementById('columnSelect');
-        const columnFilterValue = document.getElementById('columnFilterValue');
-        const addFilterBtn = document.getElementById('addFilterBtn');
-        const resetBtn = document.getElementById('resetBtn');
-        const activeFiltersDiv = document.getElementById('activeFilters');
-        const resultsCount = document.getElementById('resultsCount');
-        const tableHead = document.querySelector('#dataTable thead');
-        const tableBody = document.querySelector('#dataTable tbody');
-        const downloadBtn = document.getElementById('downloadBtn');
-        const globalDatalist = document.createElement('datalist'); 
-        globalDatalist.id = 'global-suggestions'; document.body.appendChild(globalDatalist);
-        const columnDatalist = document.getElementById('column-suggestions');
-        const mainView = document.getElementById('main-view');
-        const selectionView = document.getElementById('selection-view');
-        const viewSelectionBtn = document.getElementById('viewSelectionBtn');
-        const clearSelectionBtn = document.getElementById('clearSelectionBtn');
-        const backToSearchBtn = document.getElementById('backToSearchBtn');
-        const downloadSelectionBtn = document.getElementById('downloadSelectionBtn');
-        const selectionCount = document.getElementById('selectionCount');
-        const selectionTableHead = document.querySelector('#selectionTable thead');
-        const selectionTableBody = document.querySelector('#selectionTable tbody');
-        const detailModalOverlay = document.getElementById('detail-modal-overlay');
-        const detailModalContent = document.getElementById('detail-modal-content');
-        const detailModalClose = document.getElementById('detail-modal-close');
-        const detailContent = document.getElementById('detail-content');
-        const downloadExcelBtn = document.getElementById('downloadExcelBtn');
-        const downloadSelectionExcelBtn = document.getElementById('downloadSelectionExcelBtn');
+        let idColumn = '_INTERNAL_ID_'; 
+        let videoLinkColumn = 'Link'; 
 
         let originalData = [];  
         let headers = []; 
         let headersToShow = []; 
         let activeColumnFilters = {}; 
-        let allUniqueWords = new Set(); 
         let columnUniqueValues = new Map(); 
         let currentVisibleData = []; 
         let selectedRowIDs = new Set(); 
         
-        globalSearch.addEventListener('input', applyAllFilters); 
-        addFilterBtn.addEventListener('click', addColumnFilter);
-        resetBtn.addEventListener('click', resetAllFilters);
-        downloadBtn.addEventListener('click', downloadCSV);
-        columnSelect.addEventListener('change', updateColumnDatalist);
-        tableHead.addEventListener('click', handleSelectAllClick);
-        tableBody.addEventListener('click', handleRowActions); 
-        viewSelectionBtn.addEventListener('click', () => toggleViews(true));
-        backToSearchBtn.addEventListener('click', () => toggleViews(false));
-        clearSelectionBtn.addEventListener('click', clearAllSelections);
-        downloadSelectionBtn.addEventListener('click', downloadCSV);
-        detailModalClose.addEventListener('click', hideDetails);
-        detailModalOverlay.addEventListener('click', (event) => { if (event.target === detailModalOverlay) hideDetails(); });
-        selectionTableBody.addEventListener('click', handleRowActions); 
-        downloadExcelBtn.addEventListener('click', downloadExcel);
-        downloadSelectionExcelBtn.addEventListener('click', downloadExcel);
+        const resultsCount = document.getElementById('resultsCount');
+        const tableHead = document.querySelector('#dataTable thead');
+        const tableBody = document.querySelector('#dataTable tbody');
+
+        document.getElementById('login-form').addEventListener('submit', function(event) {
+            event.preventDefault(); 
+            const authorizedEmail = "archfilm@ffyh.unc.edu.ar";
+            const inputEmail = document.getElementById('login-email').value.trim();
+            if (inputEmail.toLowerCase() === authorizedEmail.toLowerCase()) {
+                document.getElementById('login-view').style.display = 'none';
+                document.getElementById('app-container').style.display = 'block';
+                loadCsvFromUrl();
+            } else { 
+                alert("Acceso denegado. El email no está autorizado."); 
+            }
+        });
 
         function loadCsvFromUrl() {
-            const csvUrl = "https://docs.google.com/spreadsheets/d/e/2PACX-1vQYwzS5XouerY_Pw_Bwb-mWrnU3ND6Pzi_q1GI_usW8VwC-d2clXXK75Jrlw-oa8XoVXqp0ff-KZH7P/pub?gid=1068718906&single=true&output=csv"; 
-            resetAllFilters(); selectedRowIDs.clear(); updateSelectionCount(); originalData = []; currentVisibleData = []; 
+            const csvUrl = "[https://docs.google.com/spreadsheets/d/e/2PACX-1vQYwzS5XouerY_Pw_Bwb-mWrnU3ND6Pzi_q1GI_usW8VwC-d2clXXK75Jrlw-oa8XoVXqp0ff-KZH7P/pub?gid=1068718906&single=true&output=csv](https://docs.google.com/spreadsheets/d/e/2PACX-1vQYwzS5XouerY_Pw_Bwb-mWrnU3ND6Pzi_q1GI_usW8VwC-d2clXXK75Jrlw-oa8XoVXqp0ff-KZH7P/pub?gid=1068718906&single=true&output=csv)"; 
+            
+            resultsCount.textContent = "Conectando con Google Sheets y descargando datos...";
+            tableBody.innerHTML = '<tr><td colspan="10">Por favor, espera unos segundos. Descargando base de datos...</td></tr>';
+
             Papa.parse(csvUrl, {
-                download: true, header: false, skipEmptyLines: true, encoding: "UTF-8", 
-                complete: (results) => { processLoadedData(results); }
+                download: true, 
+                header: false, 
+                skipEmptyLines: true, 
+                encoding: "UTF-8", 
+                complete: function(results) { 
+                    try {
+                        if (!results || !results.data || results.data.length === 0) {
+                            throw new Error("El archivo CSV se descargó pero está vacío.");
+                        }
+                        processLoadedData(results); 
+                    } catch (err) {
+                        resultsCount.textContent = "Error al procesar los datos: " + err.message;
+                        tableBody.innerHTML = `<tr><td colspan="10" style="color:red;">Ha ocurrido un error procesando los datos. Revisa la consola (F12). Detalle: ${err.message}</td></tr>`;
+                    }
+                },
+                error: function(err) {
+                    resultsCount.textContent = "Error crítico de conexión o lectura.";
+                    tableBody.innerHTML = `<tr><td colspan="10" style="color:red;">Error descargando CSV: ${err.message}. Asegúrate de que el link de Google Sheets esté publicado en la web.</td></tr>`;
+                }
             });
         }
 
         function processLoadedData(results) {
+            resultsCount.textContent = "Procesando columnas y limpiando datos...";
             const rawHeaders = results.data[0];
             const rawDataRows = results.data.slice(1);
             const headerMap = new Map();
 
-            // Limpieza estricta para evitar duplicados en filtros
+            // Evitar nombres de columnas repetidos
             rawHeaders.forEach((headerName, index) => {
                 const cleanHeader = String(headerName || "").trim().replace(/\s+/g, ' ');
                 if (!cleanHeader) return; 
@@ -216,150 +234,379 @@
             });
 
             headers = Array.from(headerMap.keys());
-            
+            headers.push(idColumn); // Forzamos una columna ID interna siempre
+
             originalData = [];
             rawDataRows.forEach((rawRow, rowIndex) => {
                 if (rawRow.every(cell => (cell || "").trim() === "")) return; 
                 const newRow = {};
                 for (const cleanHeader of headers) {
+                    if (cleanHeader === idColumn) continue;
                     const indices = headerMap.get(cleanHeader);
                     const values = indices.map(index => String(rawRow[index] || "").trim()).filter(val => val !== "");
                     newRow[cleanHeader] = values.join("; ");
                 }
+                
+                // Generar ID único para cada fila para que la lupita NUNCA falle
+                let rowMfn = newRow['MFN'] || newRow['mfn'] || newRow['ID'] || newRow['id'];
+                newRow[idColumn] = rowMfn ? String(rowMfn).trim() : 'AUTO-' + (rowIndex + 1);
+                
                 originalData.push(newRow);
             });
 
-            // Asignar ID robusto para asegurar que la lupa funcione siempre
-            let foundIdColumn = headers.find(h => h.toLowerCase() === 'mfn') || headers.find(h => h.toLowerCase() === 'id');
-            if (foundIdColumn) {
-                idColumn = foundIdColumn;
-            } else {
-                idColumn = '_INTERNAL_ID_';
-                headers.push(idColumn);
-            }
-
-            // Si la fila no tiene ID (como pasaba en la imagen), le asignamos uno temporal
-            originalData.forEach((row, index) => {
-                if (!row[idColumn] || String(row[idColumn]).trim() === '') {
-                    row[idColumn] = 'AUTO-' + (index + 1);
-                }
-            });
-
-            // Lógica para mostrar SÓLO Fecha, Titulo, Lugar y Resumen
+            // Seleccionar las columnas a mostrar ("fecha", "titulo", "lugar", "resumen")
             headersToShow = [];
             const keywordsBuscadas = ['fecha', 'titulo', 'título', 'lugar', 'resumen'];
+            
             keywordsBuscadas.forEach(kw => {
                 const found = headers.find(h => h.toLowerCase().includes(kw) && !headersToShow.includes(h));
                 if (found) headersToShow.push(found);
             });
             
-            // Si por alguna razón no encuentra ninguna, muestra las primeras 4 por defecto
-            if (headersToShow.length === 0) headersToShow = headers.slice(0, 4); 
+            // Fallback: si no encuentra esas palabras, muestra las primeras 4 columnas que existan
+            if (headersToShow.length === 0) {
+                headersToShow = headers.filter(h => h !== idColumn).slice(0, 4);
+            }
+
+            // Descubrir cuál es la columna de "Link" o video
+            const foundLinkCol = headers.find(h => h.toLowerCase().includes('link') || h.toLowerCase().includes('video'));
+            if (foundLinkCol) videoLinkColumn = foundLinkCol;
 
             currentVisibleData = [...originalData]; 
+            
+            // Construir menús desplegables
+            rebuildDatalists(originalData); 
+            populateColumnSelect(); 
+            
+            // Mostrar los datos
             renderTable(originalData); 
             
-            setTimeout(() => {
-                rebuildDatalists(originalData); 
-                populateColumnSelect(); 
-                updateColumnDatalist(); 
-                filterSection.style.display = 'block'; 
-                downloadBtn.style.display = 'inline-block'; 
-                downloadExcelBtn.style.display = 'inline-block'; 
-                viewSelectionBtn.style.display = 'inline-block'; 
-                clearSelectionBtn.style.display = 'inline-block'; 
-                resultsCount.textContent = `Mostrando ${originalData.length} de ${originalData.length} registros.`;
-            }, 50); 
-        }
-        
-        function rebuildDatalists(dataToProcess) {
-            allUniqueWords = new Set(); columnUniqueValues = new Map(); 
-            headers.forEach(header => { if(header) columnUniqueValues.set(header, new Set()); });
-            for (const row of dataToProcess) {
-                for (const header of columnUniqueValues.keys()) { 
-                    let cellValue = (row.hasOwnProperty(header) && row[header]) ? String(row[header]).trim() : "";
-                    if (cellValue) { 
-                        columnUniqueValues.get(header).add(cellValue); 
-                        const words = cellValue.toLowerCase().split(/[\s,.;:()]+/); 
-                        words.forEach(word => { if (word.length > 2) allUniqueWords.add(word); });
-                    }
-                }
-            } 
-        }
-
-        function updateColumnDatalist() {
-            const selectedColumn = columnSelect.value; 
-            const valuesSet = columnUniqueValues.get(selectedColumn);
-            columnDatalist.innerHTML = ''; if (!valuesSet) return;
-            const sortedValues = Array.from(valuesSet).sort((a, b) => a.localeCompare(b));
-            const columnFragment = document.createDocumentFragment();
-            sortedValues.forEach(value => { const option = document.createElement('option'); option.value = value; columnFragment.appendChild(option); });
-            columnDatalist.appendChild(columnFragment);
-        }
-
-        function populateColumnSelect() {
-            columnSelect.innerHTML = ''; 
-            for (const header of headers) { 
-                if (header && header !== '_INTERNAL_ID_') { 
-                    const option = document.createElement('option'); 
-                    option.value = header; option.textContent = header; 
-                    columnSelect.appendChild(option); 
-                }
-            }
+            // Habilitar la interfaz
+            document.getElementById('filter-section').style.display = 'block'; 
+            document.getElementById('downloadBtn').style.display = 'inline-block'; 
+            document.getElementById('downloadExcelBtn').style.display = 'inline-block'; 
+            document.getElementById('viewSelectionBtn').style.display = 'inline-block'; 
+            document.getElementById('clearSelectionBtn').style.display = 'inline-block'; 
+            
+            resultsCount.style.color = '#333'; // Quitar color rojo de error
+            resultsCount.textContent = `Mostrando ${originalData.length} de ${originalData.length} registros.`;
         }
 
         function renderTable(data) {
-            tableHead.innerHTML = ''; tableBody.innerHTML = ''; const headerRow = document.createElement('tr');
+            tableHead.innerHTML = ''; tableBody.innerHTML = ''; 
+            const headerRow = document.createElement('tr');
+            
             headerRow.innerHTML += `<th><input type="checkbox" id="selectAllCheckbox" title="Seleccionar todo"></th>`;
             headerRow.innerHTML += `<th>Detalle</th>`; 
             headerRow.innerHTML += `<th>Video</th>`;  
-            for (const header of headersToShow) { const th = document.createElement('th'); th.textContent = header; headerRow.appendChild(th); }
+            
+            for (const header of headersToShow) { 
+                const th = document.createElement('th'); 
+                th.textContent = header; 
+                headerRow.appendChild(th); 
+            }
             tableHead.appendChild(headerRow); 
             
-            if (data.length === 0) { tableBody.innerHTML = `<tr><td colspan="10">No se encontraron resultados.</td></tr>`; return; }
+            if (data.length === 0) { 
+                tableBody.innerHTML = `<tr><td colspan="10" style="text-align:center;">No se encontraron resultados.</td></tr>`; 
+                return; 
+            }
             
             const fragment = document.createDocumentFragment();
             data.forEach((row) => {
-                const tr = document.createElement('tr'); const rowID = row[idColumn]; 
+                const tr = document.createElement('tr'); 
+                const rowID = row[idColumn]; 
                 
                 const tdCheck = document.createElement('td');
                 const isChecked = selectedRowIDs.has(rowID) ? "checked" : ""; 
                 tdCheck.innerHTML = `<input type="checkbox" class="row-checkbox" data-row-id="${rowID}" ${isChecked}>`;
                 tr.appendChild(tdCheck);
                 
-                // Botón de Lupita garantizado
                 const tdDetail = document.createElement('td'); 
                 tdDetail.innerHTML = `<button class="detail-btn" data-row-id="${rowID}" title="Ver detalle completo">🔍</button>`; 
                 tr.appendChild(tdDetail);
 
                 const tdVideo = document.createElement('td');
-                const videoUrl = row.hasOwnProperty(videoLinkColumn) && row[videoLinkColumn] ? String(row[videoLinkColumn]).trim() : ''; 
-                if (videoUrl && (videoUrl.startsWith('http') || videoUrl.startsWith('/'))) { tdVideo.innerHTML = `<a href="${videoUrl}" target="_blank" rel="noopener noreferrer" class="video-direct-link" title="Abrir video">▶️</a>`; }
+                const videoUrl = row[videoLinkColumn] ? String(row[videoLinkColumn]).trim() : ''; 
+                if (videoUrl && (videoUrl.startsWith('http') || videoUrl.startsWith('/'))) { 
+                    tdVideo.innerHTML = `<a href="${videoUrl}" target="_blank" rel="noopener noreferrer" class="video-direct-link" title="Abrir video">▶️</a>`; 
+                }
                 tr.appendChild(tdVideo);
 
                 for (const header of headersToShow) { 
-                     const cellContent = row.hasOwnProperty(header) ? row[header] : ''; 
+                     const cellContent = row[header] ? row[header] : ''; 
                      const td = document.createElement('td'); 
                      td.innerHTML = `<div class="cell-content">${cellContent}</div>`; 
                      tr.appendChild(td); 
                 }
                 fragment.appendChild(tr);
             });
-            tableBody.appendChild(fragment); updateSelectAllCheckboxState();
+            tableBody.appendChild(fragment); 
+            updateSelectAllCheckboxState();
         }
 
-        function addColumnFilter() {
-            const column = columnSelect.value; const value = columnFilterValue.value.toLowerCase().trim();
+        function rebuildDatalists(dataToProcess) {
+            columnUniqueValues = new Map(); 
+            headers.forEach(header => { if(header && header !== idColumn) columnUniqueValues.set(header, new Set()); });
+            for (const row of dataToProcess) {
+                for (const header of columnUniqueValues.keys()) { 
+                    let cellValue = row[header] ? String(row[header]).trim() : "";
+                    if (cellValue) columnUniqueValues.get(header).add(cellValue); 
+                }
+            } 
+        }
+
+        function populateColumnSelect() {
+            const columnSelect = document.getElementById('columnSelect');
+            columnSelect.innerHTML = ''; 
+            for (const header of headers) { 
+                if (header && header !== idColumn) { 
+                    const option = document.createElement('option'); 
+                    option.value = header; option.textContent = header; 
+                    columnSelect.appendChild(option); 
+                }
+            }
+            updateColumnDatalist();
+        }
+
+        function updateColumnDatalist() {
+            const columnSelect = document.getElementById('columnSelect');
+            const columnDatalist = document.getElementById('column-suggestions');
+            const selectedColumn = columnSelect.value; 
+            const valuesSet = columnUniqueValues.get(selectedColumn);
+            columnDatalist.innerHTML = ''; 
+            if (!valuesSet) return;
+            const sortedValues = Array.from(valuesSet).sort((a, b) => a.localeCompare(b));
+            const columnFragment = document.createDocumentFragment();
+            sortedValues.forEach(value => { 
+                const option = document.createElement('option'); 
+                option.value = value; 
+                columnFragment.appendChild(option); 
+            });
+            columnDatalist.appendChild(columnFragment);
+        }
+
+        function applyAllFilters() {
+            let filteredData = [...originalData]; 
+            const globalTerm = document.getElementById('globalSearch').value.toLowerCase().trim();
+            
+            if (globalTerm) { 
+                filteredData = filteredData.filter(row => 
+                    Object.values(row).some(value => String(value).toLowerCase().includes(globalTerm)) 
+                ); 
+            }
+            
+            const columnFilters = Object.entries(activeColumnFilters);
+            if (columnFilters.length > 0) {
+                filteredData = filteredData.filter(row => {
+                    return columnFilters.every(([column, filterValues]) => {
+                        const cellValue = row[column] ? String(row[column]).toLowerCase() : "";
+                        return filterValues.every(filterValue => cellValue.includes(filterValue));
+                    });
+                });
+            }
+            
+            renderTable(filteredData); 
+            currentVisibleData = filteredData; 
+            resultsCount.textContent = `Mostrando ${filteredData.length} de ${originalData.length} registros.`;
+        }
+
+        document.getElementById('addFilterBtn').addEventListener('click', () => {
+            const column = document.getElementById('columnSelect').value; 
+            const value = document.getElementById('columnFilterValue').value.toLowerCase().trim();
             if (!value) return; 
             if (!activeColumnFilters[column]) activeColumnFilters[column] = [];
             if (!activeColumnFilters[column].includes(value)) activeColumnFilters[column].push(value);
-            columnFilterValue.value = ''; 
-            renderActiveFilters(); applyAllFilters();
-        }
+            document.getElementById('columnFilterValue').value = ''; 
+            renderActiveFilters(); 
+            applyAllFilters();
+        });
 
         function renderActiveFilters() {
-            activeFiltersDiv.innerHTML = ''; let hasFilters = false; 
+            const activeFiltersDiv = document.getElementById('activeFilters');
+            activeFiltersDiv.innerHTML = ''; 
+            let hasFilters = false; 
             for (const column in activeColumnFilters) {
                 activeColumnFilters[column].forEach((value, index) => {
                     hasFilters = true;
-                    const tag = document.createElement('div'); tag.className = '
+                    const tag = document.createElement('div'); tag.className = 'filter-tag';
+                    tag.innerHTML = `<strong>${column}</strong>: "${value}" <span data-column="${column}" data-index="${index}">&times;</span>`; 
+                    tag.querySelector('span').addEventListener('click', (e) => {
+                        const colToRemove = e.target.dataset.column;
+                        const indexToRemove = parseInt(e.target.dataset.index, 10); 
+                        activeColumnFilters[colToRemove].splice(indexToRemove, 1);
+                        if (activeColumnFilters[colToRemove].length === 0) delete activeColumnFilters[colToRemove];
+                        renderActiveFilters(); applyAllFilters();     
+                    });
+                    activeFiltersDiv.appendChild(tag);
+                });
+            }
+            if (!hasFilters) activeFiltersDiv.innerHTML = '<p>Ninguno.</p>';
+        }
+
+        document.getElementById('resetBtn').addEventListener('click', () => {
+            document.getElementById('globalSearch').value = ''; 
+            activeColumnFilters = {}; 
+            renderActiveFilters();
+            renderTable(originalData); 
+            currentVisibleData = [...originalData]; 
+            resultsCount.textContent = `Mostrando ${originalData.length} de ${originalData.length} registros.`;
+        });
+
+        document.getElementById('globalSearch').addEventListener('input', applyAllFilters);
+        document.getElementById('columnSelect').addEventListener('change', updateColumnDatalist);
+
+        tableBody.addEventListener('click', (event) => {
+            const target = event.target; 
+            if (target.classList.contains('row-checkbox')) {
+                if (target.checked) selectedRowIDs.add(target.dataset.rowId); 
+                else selectedRowIDs.delete(target.dataset.rowId);
+                updateSelectAllCheckboxState(); updateSelectionCount();
+            } else if (target.classList.contains('detail-btn')) { 
+                showDetails(target.dataset.rowId); 
+            }
+        });
+
+        tableHead.addEventListener('click', (event) => {
+            if (event.target.id === 'selectAllCheckbox') {
+                const isChecked = event.target.checked; 
+                const rowCheckboxes = tableBody.querySelectorAll('.row-checkbox');
+                currentVisibleData.forEach(row => { 
+                    if (isChecked) selectedRowIDs.add(row[idColumn]); 
+                    else selectedRowIDs.delete(row[idColumn]); 
+                });
+                rowCheckboxes.forEach(checkbox => checkbox.checked = isChecked); 
+                updateSelectionCount();
+            }
+        });
+
+        function updateSelectAllCheckboxState() {
+            const selectAllCheckbox = document.getElementById('selectAllCheckbox'); 
+            if (!selectAllCheckbox) return;
+            const totalVisibleRows = currentVisibleData.length; 
+            if (totalVisibleRows === 0) { selectAllCheckbox.checked = false; selectAllCheckbox.indeterminate = false; return; }
+            let visibleSelectedCount = 0; 
+            currentVisibleData.forEach(row => { if (selectedRowIDs.has(row[idColumn])) visibleSelectedCount++; });
+            if (visibleSelectedCount === totalVisibleRows && totalVisibleRows > 0) { selectAllCheckbox.checked = true; selectAllCheckbox.indeterminate = false; } 
+            else if (visibleSelectedCount > 0) { selectAllCheckbox.checked = false; selectAllCheckbox.indeterminate = true; } 
+            else { selectAllCheckbox.checked = false; selectAllCheckbox.indeterminate = false; }
+        }
+
+        function updateSelectionCount() { 
+            document.getElementById('viewSelectionBtn').textContent = `Mi Selección (${selectedRowIDs.size})`; 
+        }
+
+        function showDetails(rowID) {
+            const record = originalData.find(row => row[idColumn] === rowID); 
+            if (!record) return; 
+            const detailContent = document.getElementById('detail-content');
+            detailContent.innerHTML = ''; 
+            headers.forEach(header => {
+                if (header && header !== idColumn) { 
+                     const value = record[header] ? String(record[header]) : '(vacío)'; 
+                     const detailItem = document.createElement('div');
+                     if (header === videoLinkColumn) {
+                         const trimmedValue = value.trim(); let videoEmbedHtml = '';
+                         let youtubeMatch = trimmedValue.match(/^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|\&v=)([^#\&\?]*).*/);
+                         if (youtubeMatch && youtubeMatch[2].length === 11) { 
+                             videoEmbedHtml = `<div class="embedded-video-container"><iframe src="[https://www.youtube.com/embed/$](https://www.youtube.com/embed/$){youtubeMatch[2]}" frameborder="0" allowfullscreen></iframe></div>`; 
+                         } else if (trimmedValue !== '(vacío)' && (trimmedValue.startsWith('http') || trimmedValue.startsWith('/'))) { 
+                             detailItem.innerHTML = `<strong>${header}:</strong> <a href="${trimmedValue}" target="_blank" style="color:#28a745;">Ver Recurso ↗</a>`; 
+                         } else { detailItem.innerHTML = `<strong>${header}:</strong> ${value}`; }
+                         if (videoEmbedHtml) detailItem.innerHTML = `<strong>${header}:</strong>${videoEmbedHtml}`;
+                     } else { detailItem.innerHTML = `<strong>${header}:</strong> ${value}`; }
+                     detailContent.appendChild(detailItem);
+                }
+            }); 
+            document.getElementById('detail-modal-overlay').style.display = 'flex'; 
+        }
+
+        document.getElementById('detail-modal-close').addEventListener('click', () => {
+            document.getElementById('detail-modal-overlay').style.display = 'none'; 
+        });
+        
+        // Botones de Vistas y Descargas
+        document.getElementById('viewSelectionBtn').addEventListener('click', () => toggleViews(true));
+        document.getElementById('backToSearchBtn').addEventListener('click', () => toggleViews(false));
+        document.getElementById('clearSelectionBtn').addEventListener('click', () => {
+            if (confirm("¿Vaciar selección?")) {
+                selectedRowIDs.clear(); updateSelectionCount(); 
+                renderTable(currentVisibleData); 
+                document.querySelector('#selectionTable tbody').innerHTML = '';
+            }
+        });
+
+        function toggleViews(showSelection) {
+            if (showSelection) { 
+                document.getElementById('main-view').style.display = 'none'; 
+                document.getElementById('selection-view').style.display = 'block'; 
+                renderSelectionTable(); 
+            } else { 
+                document.getElementById('main-view').style.display = 'block'; 
+                document.getElementById('selection-view').style.display = 'none'; 
+                renderTable(currentVisibleData); 
+            }
+        }
+
+        function renderSelectionTable() {
+            const sBody = document.querySelector('#selectionTable tbody');
+            const sHead = document.querySelector('#selectionTable thead');
+            sHead.innerHTML = ''; sBody.innerHTML = '';
+            const selectedData = originalData.filter(row => selectedRowIDs.has(row[idColumn]));
+            document.getElementById('selectionCount').textContent = `Mostrando ${selectedData.length} items seleccionados.`;
+            
+            const headerRow = document.createElement('tr'); 
+            headerRow.innerHTML = '<th>Quitar</th><th>Detalle</th><th>Video</th>'; 
+            headersToShow.forEach(h => { const th = document.createElement('th'); th.textContent = h; headerRow.appendChild(th); });
+            sHead.appendChild(headerRow); 
+            
+            if (selectedData.length === 0) return;
+            const fragment = document.createDocumentFragment();
+            selectedData.forEach(row => {
+                const tr = document.createElement('tr'); 
+                const rowID = row[idColumn];
+                tr.innerHTML = `<td><button class="remove-item-btn" data-row-id="${rowID}" style="background:red;padding:5px;">&times;</button></td>
+                                <td><button class="detail-btn" data-row-id="${rowID}">🔍</button></td>
+                                <td>${row[videoLinkColumn] ? `<a href="${row[videoLinkColumn]}" target="_blank" class="video-direct-link">▶️</a>` : ''}</td>`;
+                headersToShow.forEach(h => { tr.innerHTML += `<td><div class="cell-content">${row[h] || ''}</div></td>`; });
+                fragment.appendChild(tr);
+            }); 
+            sBody.appendChild(fragment);
+        }
+
+        document.querySelector('#selectionTable tbody').addEventListener('click', (e) => {
+            const target = e.target;
+            if (target.classList.contains('remove-item-btn')) { 
+                selectedRowIDs.delete(target.dataset.rowId); 
+                updateSelectionCount(); 
+                renderSelectionTable(); 
+            } else if (target.classList.contains('detail-btn')) { 
+                showDetails(target.dataset.rowId); 
+            }
+        });
+
+        function downloadCSV() {
+            let data = selectedRowIDs.size > 0 ? originalData.filter(row => selectedRowIDs.has(row[idColumn])) : currentVisibleData;
+            if(data.length === 0) return;
+            const csv = Papa.unparse(data, { header: true });
+            const blob = new Blob([csv], { type: 'text/csv;charset=utf-8-sig;' }); 
+            const link = document.createElement('a'); link.href = URL.createObjectURL(blob); link.download = "reporte.csv";
+            link.click();
+        }
+        document.getElementById('downloadBtn').addEventListener('click', downloadCSV);
+        document.getElementById('downloadSelectionBtn').addEventListener('click', downloadCSV);
+
+        function downloadExcel() {
+            let data = selectedRowIDs.size > 0 ? originalData.filter(row => selectedRowIDs.has(row[idColumn])) : currentVisibleData;
+            if(data.length === 0) return;
+            const ws = XLSX.utils.json_to_sheet(data);
+            const wb = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(wb, ws, "Datos");
+            XLSX.writeFile(wb, "reporte.xlsx");
+        }
+        document.getElementById('downloadExcelBtn').addEventListener('click', downloadExcel);
+        document.getElementById('downloadSelectionExcelBtn').addEventListener('click', downloadExcel);
+
+    </script>
+</body>
+</html>
