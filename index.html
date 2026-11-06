@@ -9,48 +9,6 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 
     <style>
-        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; margin: 0; padding: 20px; background-color: #f4f7f6; color: #333; position: relative; }
-        h1, h2 { color: #0056b3; }
-        #error-banner { display: none; background-color: #f8d7da; color: #721c24; padding: 15px; margin-bottom: 20px; border: 1px solid #f5c6cb; border-radius: 5px; font-weight: bold; }
-        #app-container { max-width: 1200px; margin: 0 auto; background-color: #ffffff; border-radius: 8px; padding: 20px; box-shadow: 0 4px 12px rgba(0,0,0,0.05); }
-        #filter-section, #results-section, #selection-view { margin-bottom: 20px; padding-bottom: 20px; border-bottom: 1px solid #e0e0e0; }
-        input[type="text"], input[type="email"], input[type="tel"], select, button, input[type="file"], textarea { font-size: 16px; padding: 10px; margin: 5px 5px 5px 0; border-radius: 5px; border: 1px solid #ccc; }
-        button { background-color: #007bff; color: white; border: none; cursor: pointer; transition: background-color 0.2s; }
-        button:hover { background-color: #0056b3; }
-        #resetBtn, #clearSelectionBtn { background-color: #dc3545; }
-        #resetBtn:hover, #clearSelectionBtn:hover { background-color: #a71d2a; }
-        #downloadBtn, #downloadSelectionBtn { background-color: #28a745; } 
-        #downloadBtn:hover, #downloadSelectionBtn:hover { background-color: #1e7e34; }
-        #downloadExcelBtn, #downloadSelectionExcelBtn { background-color: #1a73e8; } 
-        #downloadExcelBtn:hover, #downloadSelectionExcelBtn:hover { background-color: #1152a1; }
-        #viewSelectionBtn { background-color: #ffc107; color: black; }
-        #viewSelectionBtn:hover { background-color: #e0a800; }
-        #activeFilters { margin-top: 15px; }
-        .filter-tag { display: inline-block; background-color: #e0e0e0; padding: 5px 10px; border-radius: 15px; margin: 5px; font-size: 14px; }
-        .filter-tag span { color: #c00; cursor: pointer; font-weight: bold; margin-left: 5px; }
-        #table-wrapper, #selection-table-wrapper { max-height: 600px; overflow: auto; border: 1px solid #ddd; }
-        table { width: 100%; border-collapse: collapse; table-layout: fixed; }
-        th, td { border: 1px solid #ddd; padding: 10px; text-align: left; font-size: 14px; white-space: normal; word-break: break-word; vertical-align: top; }
-        th { background-color: #f0f0f0; position: sticky; top: 0; z-index: 1; white-space: nowrap; }
-        th:nth-child(1), td:nth-child(1), th:nth-child(2), td:nth-child(2), th:nth-child(3), td:nth-child(3) { width: 50px; text-align: center; padding: 5px; vertical-align: middle; }
-        .detail-btn { background: none; border: none; font-size: 20px; cursor: pointer; padding: 5px; color: #007bff; display: inline-block;Entiendo el problema. Cuando la pantalla se queda en blanco (o solo se ve la estructura sin datos) suele deberse a que **ocurrió un error silencioso al leer el archivo CSV** o a que **los nombres de las columnas en tu Excel/Sheets no coinciden exactamente** con lo que el código está buscando, y al no tener un sistema de avisos de error, el proceso se interrumpe.
-
-He ajustado el código agregando **mensajes de estado visibles** para que, si algo falla, te diga exactamente qué es en la pantalla en lugar de quedarse en blanco. También hice más flexible la búsqueda de las columnas ("fecha", "titulo", etc.) para que no falle si tienen espacios extra o mayúsculas.
-
-Por favor, reemplaza todo el archivo HTML en tu GitHub con este nuevo código:
-
-```html
-<!DOCTYPE html>
-<html lang="es">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>BASE DE DATOS CDA</title>
-    
-    <script src="[https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.3.2/papaparse.min.js](https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.3.2/papaparse.min.js)"></script>
-    <script src="[https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js](https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js)"></script>
-
-    <style>
         body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; margin: 0; padding: 20px; background-color: #f4f7f6; color: #333; }
         h1, h2 { color: #0056b3; }
         #app-container { max-width: 1200px; margin: 0 auto; background-color: #ffffff; border-radius: 8px; padding: 20px; box-shadow: 0 4px 12px rgba(0,0,0,0.05); }
@@ -81,12 +39,16 @@ Por favor, reemplaza todo el archivo HTML en tu GitHub con este nuevo código:
         #login-form { display: flex; flex-direction: column; gap: 15px; }
         #login-form input, #login-form textarea { width: 95%; }
         #login-form button { background-color: #28a745; font-weight: bold; }
-        #detail-modal-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background-color: rgba(0, 0, 0, 0.6); z-index: 1000; justify-content: center; align-items: center; }
-        #detail-modal-content { background-color: #fff; padding: 30px; border-radius: 8px; max-width: 80%; max-height: 80%; overflow-y: auto; box-shadow: 0 5px 15px rgba(0,0,0,0.3); position: relative; }
-        #detail-modal-close { position: absolute; top: 10px; right: 15px; background: none; border: none; font-size: 24px; font-weight: bold; cursor: pointer; color: #aaa; }
-        #detail-content div { margin-bottom: 10px; padding-bottom: 5px; border-bottom: 1px solid #eee; }
-        #detail-content strong { color: #0056b3; display: block; margin-bottom: 3px; }
-        .embedded-video-container { position: relative; overflow: hidden; width: 100%; padding-top: 56.25%; margin-top: 10px; }
+        
+        /* Estilos mejorados para la ventana emergente (Modal) */
+        #detail-modal-overlay { display: none; position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background-color: rgba(0, 0, 0, 0.7); z-index: 9999; justify-content: center; align-items: center; }
+        #detail-modal-content { background-color: #fff; padding: 30px; border-radius: 12px; width: 90%; max-width: 800px; max-height: 85vh; overflow-y: auto; box-shadow: 0 10px 30px rgba(0,0,0,0.5); position: relative; animation: modalFadeIn 0.3s ease; }
+        @keyframes modalFadeIn { from { opacity: 0; transform: translateY(-20px); } to { opacity: 1; transform: translateY(0); } }
+        #detail-modal-close { position: absolute; top: 15px; right: 20px; background: none; border: none; font-size: 28px; font-weight: bold; cursor: pointer; color: #666; transition: color 0.2s; }
+        #detail-modal-close:hover { color: #d32f2f; }
+        #detail-content div { margin-bottom: 12px; padding-bottom: 8px; border-bottom: 1px solid #f0f0f0; }
+        #detail-content strong { color: #0056b3; display: block; margin-bottom: 4px; font-size: 15px; }
+        .embedded-video-container { position: relative; overflow: hidden; width: 100%; padding-top: 56.25%; margin-top: 10px; border-radius: 8px; }
         .embedded-video-container iframe { position: absolute; top: 0; left: 0; bottom: 0; right: 0; width: 100%; height: 100%; border: none; }
     </style>
 </head>
@@ -153,10 +115,11 @@ Por favor, reemplaza todo el archivo HTML en tu GitHub con este nuevo código:
         </div>
     </div>
 
+    <!-- Contenedor de la Ventana Emergente -->
     <div id="detail-modal-overlay">
         <div id="detail-modal-content">
-            <button id="detail-modal-close">&times;</button>
-            <h2>Detalle del Registro</h2>
+            <button id="detail-modal-close" title="Cerrar">&times;</button>
+            <h2 style="margin-top: 0; border-bottom: 2px solid #0056b3; padding-bottom: 10px;">Detalle del Registro</h2>
             <div id="detail-content"></div>
         </div>
     </div>
@@ -191,7 +154,9 @@ Por favor, reemplaza todo el archivo HTML en tu GitHub con este nuevo código:
         });
 
         function loadCsvFromUrl() {
-const csvUrl = "https://docs.google.com/spreadsheets/d/e/2PACX-1vQYwzS5XouerY_Pw_Bwb-mWrnU3ND6Pzi_q1GI_usW8VwC-d2clXXK75Jrlw-oa8XoVXqp0ff-KZH7P/pub?gid=1068718906&single=true&output=csv";            
+            // Tu enlace público del CSV
+            const csvUrl = "https://docs.google.com/spreadsheets/d/e/2PACX-1vQYwzS5XouerY_Pw_Bwb-mWrnU3ND6Pzi_q1GI_usW8VwC-d2clXXK75Jrlw-oa8XoVXqp0ff-KZH7P/pub?gid=1068718906&single=true&output=csv"; 
+            
             resultsCount.textContent = "Conectando con Google Sheets y descargando datos...";
             tableBody.innerHTML = '<tr><td colspan="10">Por favor, espera unos segundos. Descargando base de datos...</td></tr>';
 
@@ -208,12 +173,12 @@ const csvUrl = "https://docs.google.com/spreadsheets/d/e/2PACX-1vQYwzS5XouerY_Pw
                         processLoadedData(results); 
                     } catch (err) {
                         resultsCount.textContent = "Error al procesar los datos: " + err.message;
-                        tableBody.innerHTML = `<tr><td colspan="10" style="color:red;">Ha ocurrido un error procesando los datos. Revisa la consola (F12). Detalle: ${err.message}</td></tr>`;
+                        tableBody.innerHTML = `<tr><td colspan="10" style="color:red;">Ha ocurrido un error procesando los datos. Detalle: ${err.message}</td></tr>`;
                     }
                 },
                 error: function(err) {
                     resultsCount.textContent = "Error crítico de conexión o lectura.";
-                    tableBody.innerHTML = `<tr><td colspan="10" style="color:red;">Error descargando CSV: ${err.message}. Asegúrate de que el link de Google Sheets esté publicado en la web.</td></tr>`;
+                    tableBody.innerHTML = `<tr><td colspan="10" style="color:red;">Error descargando CSV: ${err.message}.</td></tr>`;
                 }
             });
         }
@@ -224,7 +189,6 @@ const csvUrl = "https://docs.google.com/spreadsheets/d/e/2PACX-1vQYwzS5XouerY_Pw
             const rawDataRows = results.data.slice(1);
             const headerMap = new Map();
 
-            // Evitar nombres de columnas repetidos
             rawHeaders.forEach((headerName, index) => {
                 const cleanHeader = String(headerName || "").trim().replace(/\s+/g, ' ');
                 if (!cleanHeader) return; 
@@ -233,7 +197,7 @@ const csvUrl = "https://docs.google.com/spreadsheets/d/e/2PACX-1vQYwzS5XouerY_Pw
             });
 
             headers = Array.from(headerMap.keys());
-            headers.push(idColumn); // Forzamos una columna ID interna siempre
+            headers.push(idColumn); 
 
             originalData = [];
             rawDataRows.forEach((rawRow, rowIndex) => {
@@ -242,18 +206,25 @@ const csvUrl = "https://docs.google.com/spreadsheets/d/e/2PACX-1vQYwzS5XouerY_Pw
                 for (const cleanHeader of headers) {
                     if (cleanHeader === idColumn) continue;
                     const indices = headerMap.get(cleanHeader);
-                    const values = indices.map(index => String(rawRow[index] || "").trim()).filter(val => val !== "");
+                    
+                    const values = indices.map(index => {
+                        let val = String(rawRow[index] || "").trim();
+                        // AQUÍ ELIMINAMOS EL "S/D"
+                        if (val.toUpperCase() === "S/D") {
+                            return "";
+                        }
+                        return val;
+                    }).filter(val => val !== "");
+                    
                     newRow[cleanHeader] = values.join("; ");
                 }
                 
-                // Generar ID único para cada fila para que la lupita NUNCA falle
                 let rowMfn = newRow['MFN'] || newRow['mfn'] || newRow['ID'] || newRow['id'];
                 newRow[idColumn] = rowMfn ? String(rowMfn).trim() : 'AUTO-' + (rowIndex + 1);
                 
                 originalData.push(newRow);
             });
 
-            // Seleccionar las columnas a mostrar ("fecha", "titulo", "lugar", "resumen")
             headersToShow = [];
             const keywordsBuscadas = ['fecha', 'titulo', 'título', 'lugar', 'resumen'];
             
@@ -262,33 +233,27 @@ const csvUrl = "https://docs.google.com/spreadsheets/d/e/2PACX-1vQYwzS5XouerY_Pw
                 if (found) headersToShow.push(found);
             });
             
-            // Fallback: si no encuentra esas palabras, muestra las primeras 4 columnas que existan
             if (headersToShow.length === 0) {
                 headersToShow = headers.filter(h => h !== idColumn).slice(0, 4);
             }
 
-            // Descubrir cuál es la columna de "Link" o video
             const foundLinkCol = headers.find(h => h.toLowerCase().includes('link') || h.toLowerCase().includes('video'));
             if (foundLinkCol) videoLinkColumn = foundLinkCol;
 
             currentVisibleData = [...originalData]; 
             
-            // Construir menús desplegables
             rebuildDatalists(originalData); 
             populateColumnSelect(); 
-            
-            // Mostrar los datos
             renderTable(originalData); 
             
-            // Habilitar la interfaz
             document.getElementById('filter-section').style.display = 'block'; 
             document.getElementById('downloadBtn').style.display = 'inline-block'; 
             document.getElementById('downloadExcelBtn').style.display = 'inline-block'; 
             document.getElementById('viewSelectionBtn').style.display = 'inline-block'; 
             document.getElementById('clearSelectionBtn').style.display = 'inline-block'; 
             
-            resultsCount.style.color = '#333'; // Quitar color rojo de error
-            resultsCount.textContent = `Mostrando ${originalData.length} de ${originalData.length} registros.`;
+            resultsCount.style.color = '#333'; 
+            resultsCount.textContent = `Mostrando ${originalData.length} de${originalData.length} registros.`;
         }
 
         function renderTable(data) {
@@ -322,7 +287,7 @@ const csvUrl = "https://docs.google.com/spreadsheets/d/e/2PACX-1vQYwzS5XouerY_Pw
                 tr.appendChild(tdCheck);
                 
                 const tdDetail = document.createElement('td'); 
-                tdDetail.innerHTML = `<button class="detail-btn" data-row-id="${rowID}" title="Ver detalle completo">🔍</button>`; 
+                tdDetail.innerHTML = `<button class="detail-btn" data-row-id="${rowID}" title="Ver ventana emergente">🔍</button>`; 
                 tr.appendChild(tdDetail);
 
                 const tdVideo = document.createElement('td');
@@ -407,7 +372,7 @@ const csvUrl = "https://docs.google.com/spreadsheets/d/e/2PACX-1vQYwzS5XouerY_Pw
             
             renderTable(filteredData); 
             currentVisibleData = filteredData; 
-            resultsCount.textContent = `Mostrando ${filteredData.length} de ${originalData.length} registros.`;
+            resultsCount.textContent = `Mostrando ${filteredData.length} de${originalData.length} registros.`;
         }
 
         document.getElementById('addFilterBtn').addEventListener('click', () => {
@@ -449,7 +414,7 @@ const csvUrl = "https://docs.google.com/spreadsheets/d/e/2PACX-1vQYwzS5XouerY_Pw
             renderActiveFilters();
             renderTable(originalData); 
             currentVisibleData = [...originalData]; 
-            resultsCount.textContent = `Mostrando ${originalData.length} de ${originalData.length} registros.`;
+            resultsCount.textContent = `Mostrando ${originalData.length} de${originalData.length} registros.`;
         });
 
         document.getElementById('globalSearch').addEventListener('input', applyAllFilters);
@@ -495,6 +460,7 @@ const csvUrl = "https://docs.google.com/spreadsheets/d/e/2PACX-1vQYwzS5XouerY_Pw
             document.getElementById('viewSelectionBtn').textContent = `Mi Selección (${selectedRowIDs.size})`; 
         }
 
+        // --- APERTURA DE LA VENTANA EMERGENTE ---
         function showDetails(rowID) {
             const record = originalData.find(row => row[idColumn] === rowID); 
             if (!record) return; 
@@ -502,29 +468,52 @@ const csvUrl = "https://docs.google.com/spreadsheets/d/e/2PACX-1vQYwzS5XouerY_Pw
             detailContent.innerHTML = ''; 
             headers.forEach(header => {
                 if (header && header !== idColumn) { 
-                     const value = record[header] ? String(record[header]) : '(vacío)'; 
-                     const detailItem = document.createElement('div');
-                     if (header === videoLinkColumn) {
-                         const trimmedValue = value.trim(); let videoEmbedHtml = '';
-                         let youtubeMatch = trimmedValue.match(/^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|\&v=)([^#\&\?]*).*/);
-                         if (youtubeMatch && youtubeMatch[2].length === 11) { 
-                             videoEmbedHtml = `<div class="embedded-video-container"><iframe src="[https://www.youtube.com/embed/$](https://www.youtube.com/embed/$){youtubeMatch[2]}" frameborder="0" allowfullscreen></iframe></div>`; 
-                         } else if (trimmedValue !== '(vacío)' && (trimmedValue.startsWith('http') || trimmedValue.startsWith('/'))) { 
-                             detailItem.innerHTML = `<strong>${header}:</strong> <a href="${trimmedValue}" target="_blank" style="color:#28a745;">Ver Recurso ↗</a>`; 
-                         } else { detailItem.innerHTML = `<strong>${header}:</strong> ${value}`; }
-                         if (videoEmbedHtml) detailItem.innerHTML = `<strong>${header}:</strong>${videoEmbedHtml}`;
-                     } else { detailItem.innerHTML = `<strong>${header}:</strong> ${value}`; }
-                     detailContent.appendChild(detailItem);
+                     // Si el campo está vacío, no mostrar "S/D" ni "(vacío)"
+                     const value = record[header] ? String(record[header]) : ''; 
+                     
+                     // Solo mostramos la fila en la ventana si tiene contenido
+                     if (value !== '') {
+                         const detailItem = document.createElement('div');
+                         if (header === videoLinkColumn) {
+                             const trimmedValue = value.trim(); let videoEmbedHtml = '';
+                             let youtubeMatch = trimmedValue.match(/^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|\&v=)([^#\&\?]*).*/);
+                             if (youtubeMatch && youtubeMatch[2].length === 11) { 
+                                 videoEmbedHtml = `<div class="embedded-video-container"><iframe src="https://www.youtube.com/embed/${youtubeMatch[2]}" frameborder="0" allowfullscreen></iframe></div>`; } else if (trimmedValue.startsWith('http') \vert{}\vert{} trimmedValue.startsWith('/')) { detailItem.innerHTML = `<strong>${header}:</strong> <a href="${trimmedValue}" target="_blank" style="color:#28a745;">Ver Recurso ↗</a>`; 
+                             } else { detailItem.innerHTML = `<strong>${header}:</strong>${value}`; }
+                             if (videoEmbedHtml) detailItem.innerHTML = `<strong>${header}:</strong>${videoEmbedHtml}`;
+                         } else { detailItem.innerHTML = `<strong>${header}:</strong>${value}`; }
+                         detailContent.appendChild(detailItem);
+                     }
                 }
             }); 
+            
+            if (detailContent.innerHTML === '') {
+                detailContent.innerHTML = '<p>No hay información adicional disponible.</p>';
+            }
+
+            // Mostrar el Modal y bloquear el scroll de fondo
             document.getElementById('detail-modal-overlay').style.display = 'flex'; 
+            document.body.style.overflow = 'hidden'; 
         }
 
-        document.getElementById('detail-modal-close').addEventListener('click', () => {
+        // --- CIERRE DE LA VENTANA EMERGENTE ---
+        function closeModal() {
             document.getElementById('detail-modal-overlay').style.display = 'none'; 
+            document.body.style.overflow = 'auto'; // Restaurar el scroll
+        }
+
+        document.getElementById('detail-modal-close').addEventListener('click', closeModal);
+        
+        // Cerrar también si el usuario hace clic afuera de la caja blanca
+        document.getElementById('detail-modal-overlay').addEventListener('click', (e) => {
+            if(e.target.id === 'detail-modal-overlay') closeModal();
         });
         
-        // Botones de Vistas y Descargas
+        // Cerrar con la tecla Escape
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape') closeModal();
+        });
+        
         document.getElementById('viewSelectionBtn').addEventListener('click', () => toggleViews(true));
         document.getElementById('backToSearchBtn').addEventListener('click', () => toggleViews(false));
         document.getElementById('clearSelectionBtn').addEventListener('click', () => {
@@ -552,60 +541,4 @@ const csvUrl = "https://docs.google.com/spreadsheets/d/e/2PACX-1vQYwzS5XouerY_Pw
             const sHead = document.querySelector('#selectionTable thead');
             sHead.innerHTML = ''; sBody.innerHTML = '';
             const selectedData = originalData.filter(row => selectedRowIDs.has(row[idColumn]));
-            document.getElementById('selectionCount').textContent = `Mostrando ${selectedData.length} items seleccionados.`;
-            
-            const headerRow = document.createElement('tr'); 
-            headerRow.innerHTML = '<th>Quitar</th><th>Detalle</th><th>Video</th>'; 
-            headersToShow.forEach(h => { const th = document.createElement('th'); th.textContent = h; headerRow.appendChild(th); });
-            sHead.appendChild(headerRow); 
-            
-            if (selectedData.length === 0) return;
-            const fragment = document.createDocumentFragment();
-            selectedData.forEach(row => {
-                const tr = document.createElement('tr'); 
-                const rowID = row[idColumn];
-                tr.innerHTML = `<td><button class="remove-item-btn" data-row-id="${rowID}" style="background:red;padding:5px;">&times;</button></td>
-                                <td><button class="detail-btn" data-row-id="${rowID}">🔍</button></td>
-                                <td>${row[videoLinkColumn] ? `<a href="${row[videoLinkColumn]}" target="_blank" class="video-direct-link">▶️</a>` : ''}</td>`;
-                headersToShow.forEach(h => { tr.innerHTML += `<td><div class="cell-content">${row[h] || ''}</div></td>`; });
-                fragment.appendChild(tr);
-            }); 
-            sBody.appendChild(fragment);
-        }
-
-        document.querySelector('#selectionTable tbody').addEventListener('click', (e) => {
-            const target = e.target;
-            if (target.classList.contains('remove-item-btn')) { 
-                selectedRowIDs.delete(target.dataset.rowId); 
-                updateSelectionCount(); 
-                renderSelectionTable(); 
-            } else if (target.classList.contains('detail-btn')) { 
-                showDetails(target.dataset.rowId); 
-            }
-        });
-
-        function downloadCSV() {
-            let data = selectedRowIDs.size > 0 ? originalData.filter(row => selectedRowIDs.has(row[idColumn])) : currentVisibleData;
-            if(data.length === 0) return;
-            const csv = Papa.unparse(data, { header: true });
-            const blob = new Blob([csv], { type: 'text/csv;charset=utf-8-sig;' }); 
-            const link = document.createElement('a'); link.href = URL.createObjectURL(blob); link.download = "reporte.csv";
-            link.click();
-        }
-        document.getElementById('downloadBtn').addEventListener('click', downloadCSV);
-        document.getElementById('downloadSelectionBtn').addEventListener('click', downloadCSV);
-
-        function downloadExcel() {
-            let data = selectedRowIDs.size > 0 ? originalData.filter(row => selectedRowIDs.has(row[idColumn])) : currentVisibleData;
-            if(data.length === 0) return;
-            const ws = XLSX.utils.json_to_sheet(data);
-            const wb = XLSX.utils.book_new();
-            XLSX.utils.book_append_sheet(wb, ws, "Datos");
-            XLSX.writeFile(wb, "reporte.xlsx");
-        }
-        document.getElementById('downloadExcelBtn').addEventListener('click', downloadExcel);
-        document.getElementById('downloadSelectionExcelBtn').addEventListener('click', downloadExcel);
-
-    </script>
-</body>
-</html>
+            document.getElementById('selectionCount').textContent = `Most
