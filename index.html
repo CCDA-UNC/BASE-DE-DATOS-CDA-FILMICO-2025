@@ -59,7 +59,7 @@
         th, td { border: 1px solid #e0e0e0; padding: 12px; text-align: left; font-size: 14px; white-space: normal; word-break: break-word; vertical-align: top; }
         th { background-color: #f8f9fa; position: sticky; top: 0; z-index: 1; font-weight: 600; color: #333; }
         
-        /* Modificado: Fija el ancho de la 1ra, 2da y última columna (Checkbox, Detalle, Video) */
+        /* Aseguramos anchos fijos para las columnas extremas */
         th:first-child, td:first-child, th:nth-child(2), td:nth-child(2), th:last-child, td:last-child { width: 60px; text-align: center; }
         
         tr:nth-child(even) { background-color: #f8f9fa; }
@@ -346,7 +346,7 @@
 
             headersToShow = [];
             
-            // AGREGAMOS 'descriptores' A LA LISTA DE COLUMNAS A MOSTRAR
+            // Lista de columnas principales a mostrar (ahora incluye descriptores)
             const keywordsBuscadas = ['fecha', 'titulo', 'título', 'lugar', 'resumen', 'descriptores'];
             keywordsBuscadas.forEach(kw => {
                 const found = headers.find(h => h.toLowerCase().includes(kw) && !headersToShow.includes(h));
@@ -377,16 +377,16 @@
             tableHead.innerHTML = ''; tableBody.innerHTML = ''; 
             const headerRow = document.createElement('tr');
             
-            // ARMADO DEL ENCABEZADO DE LA TABLA
+            // INICIO DEL ENCABEZADO
             headerRow.innerHTML += `<th><input type="checkbox" id="selectAllCheckbox" title="Seleccionar todo"></th>`;
             headerRow.innerHTML += `<th>Detalle</th>`; 
             
-            // Primero ponemos todas las columnas de texto (Fecha, Título, Lugar, Resumen, Descriptores)
+            // COLUMNAS DE TEXTO EN EL MEDIO
             for (const header of headersToShow) { 
                 const th = document.createElement('th'); th.textContent = header; headerRow.appendChild(th); 
             }
             
-            // Y la columna Video al final
+            // COLUMNA VIDEO AL FINAL A LA DERECHA
             headerRow.innerHTML += `<th>Video</th>`;  
             
             tableHead.appendChild(headerRow); 
@@ -409,14 +409,13 @@
                 tdDetail.innerHTML = `<button type="button" class="detail-btn" data-row-id="${rowID}" title="Abrir ventana emergente">🔍</button>`; 
                 tr.appendChild(tdDetail);
 
-                // Llenamos las columnas de texto
                 for (const header of headersToShow) { 
                      const td = document.createElement('td'); 
                      td.innerHTML = `<div class="cell-content">${row[header] || ''}</div>`; 
                      tr.appendChild(td); 
                 }
 
-                // Generamos y colocamos la columna de video al final
+                // Generamos la celda de video y la agregamos AL FINAL de la fila
                 const tdVideo = document.createElement('td');
                 const videoUrl = row[videoLinkColumn] ? String(row[videoLinkColumn]).trim() : ''; 
                 if (videoUrl && (videoUrl.startsWith('http') || videoUrl.startsWith('/'))) { 
@@ -703,10 +702,11 @@
             
             const headerRow = document.createElement('tr'); 
             
-            // Aplicamos la misma lógica en la tabla de Selección: Columnas de texto primero, Video al final
+            // MISMO ORDEN PARA LA TABLA DE SELECCIÓN
             headerRow.innerHTML = '<th>Quitar</th><th>Detalle</th>'; 
             headersToShow.forEach(h => { const th = document.createElement('th'); th.textContent = h; headerRow.appendChild(th); });
             headerRow.innerHTML += '<th>Video</th>';
+            
             sHead.appendChild(headerRow); 
             
             if (selectedData.length === 0) return;
@@ -736,14 +736,43 @@
             }
         });
 
+        // ==========================================
+        // NUEVA FUNCIÓN PARA FILTRAR COLUMNAS AL EXPORTAR
+        // ==========================================
+        function prepareDataForExport(dataToExport) {
+            // Aquí definimos las palabras clave de las únicas columnas que quieres en el CSV/Excel
+            const keywordsExportar = [
+                'cassete', 'casete', 'torta', 'titulo original', 'fecha', 
+                'personas participantes', 'descriptores', 'resumen', 'duracion'
+            ];
+            
+            // Buscamos los nombres exactos en tu base de datos que coincidan con esas palabras clave
+            const headersParaExportar = headers.filter(header => {
+                if (header === idColumn) return false;
+                const headerNormalizado = header.trim().toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+                return keywordsExportar.some(keyword => headerNormalizado.includes(keyword));
+            });
+
+            // Reconstruimos la data conservando solo las columnas permitidas
+            return dataToExport.map(row => {
+                const filaFiltrada = {};
+                headersParaExportar.forEach(h => {
+                    filaFiltrada[h] = row[h] !== undefined ? row[h] : '';
+                });
+                return filaFiltrada;
+            });
+        }
+
         function downloadCSV() {
             let data = selectedRowIDs.size > 0 ? originalData.filter(row => selectedRowIDs.has(row[idColumn])) : currentVisibleData;
             if(data.length === 0) return;
             
-            const exportData = data.map(row => { const newRow = { ...row }; delete newRow[idColumn]; return newRow; });
+            // Usamos la nueva función de filtrado
+            const exportData = prepareDataForExport(data);
+            
             const csv = Papa.unparse(exportData, { header: true });
             const blob = new Blob([csv], { type: 'text/csv;charset=utf-8-sig;' }); 
-            const link = document.createElement('a'); link.href = URL.createObjectURL(blob); link.download = "reporte.csv";
+            const link = document.createElement('a'); link.href = URL.createObjectURL(blob); link.download = "reporte_cda.csv";
             link.click();
         }
         
@@ -757,11 +786,13 @@
             let data = selectedRowIDs.size > 0 ? originalData.filter(row => selectedRowIDs.has(row[idColumn])) : currentVisibleData;
             if(data.length === 0) return;
             
-            const exportData = data.map(row => { const newRow = { ...row }; delete newRow[idColumn]; return newRow; });
+            // Usamos la nueva función de filtrado
+            const exportData = prepareDataForExport(data);
+            
             const ws = XLSX.utils.json_to_sheet(exportData);
             const wb = XLSX.utils.book_new();
             XLSX.utils.book_append_sheet(wb, ws, "Datos");
-            XLSX.writeFile(wb, "reporte.xlsx");
+            XLSX.writeFile(wb, "reporte_cda.xlsx");
         }
         
         if (typeof XLSX !== 'undefined') {
