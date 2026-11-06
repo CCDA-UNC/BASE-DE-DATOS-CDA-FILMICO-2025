@@ -115,9 +115,9 @@
             <input type="text" id="login-apellido" placeholder="Apellido" required>
             <input type="text" id="login-institucion" placeholder="Institución" required>
             <textarea id="login-proposito" placeholder="Propósito de uso..." required></textarea>
-            <input type="email" id="login-email" placeholder="Email de contacto (archfilm@ffyh.unc.edu.ar)" required>
+            <input type="email" id="login-email" placeholder="Email de contacto" required>
             <input type="tel" id="login-telefono" placeholder="Teléfono" required>
-            <button type="submit">Ingresar</button>
+            <button type="submit" id="btn-ingresar">Ingresar</button>
         </form>
     </div>
 
@@ -204,20 +204,16 @@
         const tableHead = document.querySelector('#dataTable thead');
         const tableBody = document.querySelector('#dataTable tbody');
 
-        // Login y Carga
+        // Login sin restricción estricta de correo para permitir el paso
         document.getElementById('login-form').addEventListener('submit', function(event) {
-            event.preventDefault(); 
-            const authorizedEmail = "archfilm@ffyh.unc.edu.ar";
-            const inputEmail = document.getElementById('login-email').value.trim();
+            event.preventDefault(); // Evita que la página se reinicie al enviar
             
-            if (inputEmail.toLowerCase() === authorizedEmail.toLowerCase()) {
-                // Obligar a que la app-container se muestre, sin importar si los datos fallan luego
-                document.getElementById('login-view').style.display = 'none';
-                document.getElementById('app-container').style.display = 'block';
-                loadCsvFromUrl();
-            } else { 
-                alert("Acceso denegado. El email no está autorizado."); 
-            }
+            // Ocultar formulario de ingreso y mostrar la app
+            document.getElementById('login-view').style.display = 'none';
+            document.getElementById('app-container').style.display = 'block';
+            
+            // Cargar los datos
+            loadCsvFromUrl();
         });
 
         function loadCsvFromUrl() {
@@ -282,7 +278,6 @@
                     
                     const values = indices.map(index => {
                         let val = String(rawRow[index] || "").trim();
-                        // LIMPIEZA DE "S/D"
                         if (val.toUpperCase() === "S/D" || val.toUpperCase() === "S/D;" || val.toUpperCase() === "S/D.") {
                             return "";
                         }
@@ -321,7 +316,7 @@
             document.getElementById('viewSelectionBtn').style.display = 'inline-block'; 
             document.getElementById('clearSelectionBtn').style.display = 'inline-block'; 
             
-            resultsCount.style.color = '#495057'; // Color normal
+            resultsCount.style.color = '#495057';
             resultsCount.textContent = `Mostrando ${originalData.length} de ${originalData.length} registros.`;
         }
 
@@ -510,4 +505,143 @@
             else { selectAllCheckbox.checked = false; selectAllCheckbox.indeterminate = false; }
         }
 
-        function updateSelectionCount() {
+        function updateSelectionCount() { 
+            const btn = document.getElementById('viewSelectionBtn');
+            btn.textContent = `Mi Selección (${selectedRowIDs.size})`; 
+            if(selectedRowIDs.size > 0) btn.style.display = 'inline-block'; else btn.style.display = 'none';
+        }
+
+        function showDetails(rowID) {
+            const record = originalData.find(row => row[idColumn] === rowID); 
+            if (!record) return; 
+            
+            const detailContent = document.getElementById('detail-content');
+            detailContent.innerHTML = ''; 
+            
+            headers.forEach(header => {
+                if (header && header !== idColumn) { 
+                     let value = record[header] ? String(record[header]).trim() : ''; 
+                     if (value.toUpperCase() === "S/D" || value === "") return; 
+                     
+                     const detailItem = document.createElement('div');
+                     if (header === videoLinkColumn) {
+                         let videoEmbedHtml = '';
+                         let youtubeMatch = value.match(/^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|\&v=)([^#\&\?]*).*/);
+                         if (youtubeMatch && youtubeMatch[2].length === 11) { 
+                             videoEmbedHtml = `<div class="embedded-video-container"><iframe src="https://www.youtube.com/embed/${youtubeMatch[2]}" frameborder="0" allowfullscreen></iframe></div>`; 
+                         } else if (value.startsWith('http') || value.startsWith('/')) { 
+                             detailItem.innerHTML = `<strong>${header}:</strong> <a href="${value}" target="_blank" style="color:#28a745;">Ver Recurso ↗</a>`; 
+                         } else { detailItem.innerHTML = `<strong>${header}:</strong> ${value}`; }
+                         if (videoEmbedHtml) detailItem.innerHTML = `<strong>${header}:</strong>${videoEmbedHtml}`;
+                     } else { 
+                         detailItem.innerHTML = `<strong>${header}:</strong> <span>${value}</span>`; 
+                     }
+                     detailContent.appendChild(detailItem);
+                }
+            }); 
+            
+            if (detailContent.innerHTML === '') detailContent.innerHTML = '<p>No hay información adicional disponible.</p>';
+
+            document.getElementById('detail-modal-overlay').style.display = 'flex'; 
+            document.body.style.overflow = 'hidden'; 
+        }
+
+        function closeModal() {
+            document.getElementById('detail-modal-overlay').style.display = 'none'; 
+            document.body.style.overflow = 'auto'; 
+        }
+
+        document.getElementById('detail-modal-close').addEventListener('click', closeModal);
+        document.getElementById('detail-modal-overlay').addEventListener('click', (e) => {
+            if(e.target.id === 'detail-modal-overlay') closeModal();
+        });
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape') closeModal();
+        });
+        
+        document.getElementById('viewSelectionBtn').addEventListener('click', () => toggleViews(true));
+        document.getElementById('backToSearchBtn').addEventListener('click', () => toggleViews(false));
+        document.getElementById('clearSelectionBtn').addEventListener('click', () => {
+            if (confirm("¿Vaciar selección?")) {
+                selectedRowIDs.clear(); updateSelectionCount(); renderTable(currentVisibleData); 
+                document.querySelector('#selectionTable tbody').innerHTML = '';
+            }
+        });
+
+        function toggleViews(showSelection) {
+            if (showSelection) { 
+                document.getElementById('main-view').style.display = 'none'; 
+                document.getElementById('selection-view').style.display = 'block'; 
+                renderSelectionTable(); 
+            } else { 
+                document.getElementById('main-view').style.display = 'block'; 
+                document.getElementById('selection-view').style.display = 'none'; 
+                renderTable(currentVisibleData); 
+            }
+        }
+
+        function renderSelectionTable() {
+            const sBody = document.querySelector('#selectionTable tbody');
+            const sHead = document.querySelector('#selectionTable thead');
+            sHead.innerHTML = ''; sBody.innerHTML = '';
+            const selectedData = originalData.filter(row => selectedRowIDs.has(row[idColumn]));
+            document.getElementById('selectionCount').textContent = `Mostrando ${selectedData.length} items seleccionados.`;
+            
+            const headerRow = document.createElement('tr'); 
+            headerRow.innerHTML = '<th>Quitar</th><th>Detalle</th><th>Video</th>'; 
+            headersToShow.forEach(h => { const th = document.createElement('th'); th.textContent = h; headerRow.appendChild(th); });
+            sHead.appendChild(headerRow); 
+            
+            if (selectedData.length === 0) return;
+            const fragment = document.createDocumentFragment();
+            selectedData.forEach(row => {
+                const tr = document.createElement('tr'); 
+                const rowID = row[idColumn];
+                tr.innerHTML = `<td><button class="remove-item-btn" data-row-id="${rowID}" style="background:#dc3545; color:white; padding:6px; border-radius:4px; border:none; cursor:pointer;">&times;</button></td>
+                                <td><button type="button" class="detail-btn" data-row-id="${rowID}">🔍</button></td>
+                                <td>${row[videoLinkColumn] ? `<a href="${row[videoLinkColumn]}" target="_blank" class="video-direct-link">▶️</a>` : ''}</td>`;
+                headersToShow.forEach(h => { tr.innerHTML += `<td><div class="cell-content">${row[h] || ''}</div></td>`; });
+                fragment.appendChild(tr);
+            }); 
+            sBody.appendChild(fragment);
+        }
+
+        document.querySelector('#selectionTable tbody').addEventListener('click', (e) => {
+            const target = e.target;
+            const btnDetail = target.closest('.detail-btn');
+            
+            if (target.classList.contains('remove-item-btn')) { 
+                selectedRowIDs.delete(target.dataset.rowId); updateSelectionCount(); renderSelectionTable(); 
+            } else if (btnDetail) { 
+                showDetails(btnDetail.dataset.rowId); 
+            }
+        });
+
+        function downloadCSV() {
+            let data = selectedRowIDs.size > 0 ? originalData.filter(row => selectedRowIDs.has(row[idColumn])) : currentVisibleData;
+            if(data.length === 0) return;
+            
+            const exportData = data.map(row => { const newRow = { ...row }; delete newRow[idColumn]; return newRow; });
+            const csv = Papa.unparse(exportData, { header: true });
+            const blob = new Blob([csv], { type: 'text/csv;charset=utf-8-sig;' }); 
+            const link = document.createElement('a'); link.href = URL.createObjectURL(blob); link.download = "reporte.csv";
+            link.click();
+        }
+        document.getElementById('downloadBtn').addEventListener('click', downloadCSV);
+        document.getElementById('downloadSelectionBtn').addEventListener('click', downloadCSV);
+
+        function downloadExcel() {
+            let data = selectedRowIDs.size > 0 ? originalData.filter(row => selectedRowIDs.has(row[idColumn])) : currentVisibleData;
+            if(data.length === 0) return;
+            
+            const exportData = data.map(row => { const newRow = { ...row }; delete newRow[idColumn]; return newRow; });
+            const ws = XLSX.utils.json_to_sheet(exportData);
+            const wb = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(wb, ws, "Datos");
+            XLSX.writeFile(wb, "reporte.xlsx");
+        }
+        document.getElementById('downloadExcelBtn').addEventListener('click', downloadExcel);
+        document.getElementById('downloadSelectionExcelBtn').addEventListener('click', downloadExcel);
+    </script>
+</body>
+</html>
