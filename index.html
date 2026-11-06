@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>BASE DE DATOS CCDA</title>
+    <title>BASE DE DATOS CDA</title>
     
     <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.3.2/papaparse.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
@@ -106,11 +106,20 @@
 </head>
 <body>
 
+    <!-- Atrapador de Errores Críticos Globales -->
+    <script>
+        window.onerror = function(message, source, lineno, colno, error) {
+            alert("Error detectado en tu navegador: " + message + " (Línea: " + lineno + "). Por favor indícale este error a tu desarrollador.");
+            return false;
+        };
+    </script>
+
     <!-- Pantalla de Inicio / Login -->
     <div id="login-view">
         <h1>BASE DE DATOS CDA</h1>
         <h2>Registro de Acceso</h2>
-        <form id="login-form">
+        <!-- Se agregó onsubmit="return false;" como barrera adicional para que no recargue la página -->
+        <form id="login-form" onsubmit="return false;">
             <input type="text" id="login-nombre" placeholder="Nombre" required>
             <input type="text" id="login-apellido" placeholder="Apellido" required>
             <input type="text" id="login-institucion" placeholder="Institución" required>
@@ -212,30 +221,39 @@
         });
 
         function loadCsvFromUrl() {
-            const csvUrl = "https://docs.google.com/spreadsheets/d/e/2PACX-1vQYwzS5XouerY_Pw_Bwb-mWrnU3ND6Pzi_q1GI_usW8VwC-d2clXXK75Jrlw-oa8XoVXqp0ff-KZH7P/pub?gid=1068718906&single=true&output=csv"; 
-            
-            resultsCount.textContent = "Conectando con la Base de Datos...";
-            tableBody.innerHTML = '<tr><td colspan="10" style="text-align:center;">Descargando información. Esto puede tomar unos segundos...</td></tr>';
-            
-            Papa.parse(csvUrl, {
-                download: true, 
-                header: false, 
-                skipEmptyLines: true, 
-                encoding: "UTF-8", 
-                complete: function(results) { 
-                    try {
-                        if (!results || !results.data || results.data.length === 0) {
-                            throw new Error("El documento CSV está vacío o no se pudo acceder.");
-                        }
-                        processLoadedData(results); 
-                    } catch (err) {
-                        showError("Error de datos: " + err.message);
-                    }
-                },
-                error: function(err) {
-                    showError("Error de conexión: " + err.message + ". Verifica que el link de Google Sheets sea público.");
+            try {
+                if (typeof Papa === 'undefined') {
+                    showError("Error: No se pudo cargar la librería externa (PapaParse). Revisa tu conexión a internet o intenta desactivar los bloqueadores de anuncios/antivirus para esta página.");
+                    return;
                 }
-            });
+
+                const csvUrl = "https://docs.google.com/spreadsheets/d/e/2PACX-1vQYwzS5XouerY_Pw_Bwb-mWrnU3ND6Pzi_q1GI_usW8VwC-d2clXXK75Jrlw-oa8XoVXqp0ff-KZH7P/pub?gid=1068718906&single=true&output=csv"; 
+                
+                resultsCount.textContent = "Conectando con la Base de Datos...";
+                tableBody.innerHTML = '<tr><td colspan="10" style="text-align:center;">Descargando información. Esto puede tomar unos segundos...</td></tr>';
+                
+                Papa.parse(csvUrl, {
+                    download: true, 
+                    header: false, 
+                    skipEmptyLines: true, 
+                    encoding: "UTF-8", 
+                    complete: function(results) { 
+                        try {
+                            if (!results || !results.data || results.data.length === 0) {
+                                throw new Error("El documento CSV está vacío o no se pudo acceder.");
+                            }
+                            processLoadedData(results); 
+                        } catch (err) {
+                            showError("Error procesando los datos: " + err.message);
+                        }
+                    },
+                    error: function(err) {
+                        showError("Error de conexión: " + err.message + ". Verifica que el link de Google Sheets sea público.");
+                    }
+                });
+            } catch (fatalError) {
+                showError("Falla crítica en la ejecución: " + fatalError.message);
+            }
         }
 
         function showError(message) {
@@ -244,6 +262,7 @@
             tableBody.innerHTML = `<tr><td colspan="10" style="color:#dc3545; text-align:center; padding: 20px;">
                 <strong>Ocurrió un problema:</strong><br>${message}
             </td></tr>`;
+            document.getElementById('app-container').style.display = 'block'; 
         }
 
         function processLoadedData(results) {
@@ -369,7 +388,6 @@
             const columnSelect = document.getElementById('columnSelect');
             columnSelect.innerHTML = ''; 
             
-            // Se separaron las palabras para que las oculte sin importar espacios adicionales
             const columnasExcluidas = [
                 'mfn', 'nombre institucional', 'coleccion', 'codigo', 'cassete', 'casete',
                 'torta', 'signatura topografica', 'ubicacion en boveda', 'agencia', 
@@ -380,7 +398,6 @@
             for (const header of headers) { 
                 if (header && header !== idColumn) {
                     const headerNormalizado = header.trim().toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
-                    
                     const debeExcluirse = columnasExcluidas.some(excluida => headerNormalizado.includes(excluida));
 
                     if (!debeExcluirse) {
@@ -652,10 +669,14 @@
             const link = document.createElement('a'); link.href = URL.createObjectURL(blob); link.download = "reporte.csv";
             link.click();
         }
-        document.getElementById('downloadBtn').addEventListener('click', downloadCSV);
-        document.getElementById('downloadSelectionBtn').addEventListener('click', downloadCSV);
+        
+        if (typeof Papa !== 'undefined') {
+            document.getElementById('downloadBtn').addEventListener('click', downloadCSV);
+            document.getElementById('downloadSelectionBtn').addEventListener('click', downloadCSV);
+        }
 
         function downloadExcel() {
+            if (typeof XLSX === 'undefined') { alert('La librería de Excel no cargó correctamente.'); return; }
             let data = selectedRowIDs.size > 0 ? originalData.filter(row => selectedRowIDs.has(row[idColumn])) : currentVisibleData;
             if(data.length === 0) return;
             
@@ -665,8 +686,11 @@
             XLSX.utils.book_append_sheet(wb, ws, "Datos");
             XLSX.writeFile(wb, "reporte.xlsx");
         }
-        document.getElementById('downloadExcelBtn').addEventListener('click', downloadExcel);
-        document.getElementById('downloadSelectionExcelBtn').addEventListener('click', downloadExcel);
+        
+        if (typeof XLSX !== 'undefined') {
+            document.getElementById('downloadExcelBtn').addEventListener('click', downloadExcel);
+            document.getElementById('downloadSelectionExcelBtn').addEventListener('click', downloadExcel);
+        }
     </script>
 </body>
 </html>
